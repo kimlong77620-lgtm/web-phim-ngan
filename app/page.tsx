@@ -7,14 +7,14 @@ const videosData = [
     id: 1, 
     // Dán link MP4 tiên sinh vừa copy từ Bunny vào đây
     src: "https://vz-f76c4946-df1.b-cdn.net/13462dc5-b2e0-4db6-91f4-0ab418abfe5e/play_720p.mp4", 
-    title: "Tập 1 - Phim Hệ Thống",
+    title: "Phim Hệ Thống",
     sub: "/11.vtt" 
   },
   { 
     id: 2, 
-    src: "LINK_MP4_TAP_2_CUA_TIEN_SINH", 
-    title: "Tập 2 - Thương Tổng",
-    sub: "/11.vtt" 
+    src: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/play_720p.mp4", 
+    title: "Thương Tổng",
+    sub: "/thuong-tong.vtt" 
   }
 ];
 
