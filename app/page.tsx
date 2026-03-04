@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useRef } from 'react';
-import Hls from 'hls.js';
 
 const videosData = [
   { 
     id: 1, 
-    src: "https://vz-f76c4946-df1.b-cdn.net/13462dc5-b2e0-4db6-91f4-0ab418abfe5e/playlist.m3u8", 
-    title: "Tập 1 - Nữ chính xuyên không",
+    // Dán link MP4 tiên sinh vừa copy từ Bunny vào đây
+    src: "https://vz-f76c4946-df1.b-cdn.net/13462dc5-b2e0-4db6-91f4-0ab418abfe5e/play_720p.mp4", 
+    title: "Tập 1 - Phim Hệ Thống",
+    sub: "/11.vtt" 
+  },
+  { 
+    id: 2, 
+    src: "LINK_MP4_TAP_2_CUA_TIEN_SINH", 
+    title: "Tập 2 - Thương Tổng",
     sub: "/11.vtt" 
   }
 ];
@@ -16,68 +22,47 @@ export default function Home() {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   useEffect(() => {
-    const hlsInstances: Hls[] = []; 
-
-    videoRefs.current.forEach((video, index) => {
-      if (video) {
-        const source = videosData[index].src;
-        if (Hls.isSupported()) {
-          const hls = new Hls();
-          hls.loadSource(source);
-          hls.attachMedia(video);
-          hlsInstances.push(hls);
-          // Thêm lệnh này để ép video phải tải ngay
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            console.log("Đã nạp xong file m3u8!");
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = source;
-        }
-      }
-    });
-
-    // Tự động chạy khi thấy video (TikTok style)
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         const v = entry.target as HTMLVideoElement;
         if (entry.isIntersecting) {
-          v.play().catch(() => console.log("Cần bấm vào màn hình để nghe tiếng"));
+          v.play().catch(() => {});
         } else {
           v.pause();
+          v.currentTime = 0;
         }
       });
-    }, { threshold: 0.5 });
+    }, { threshold: 0.6 });
 
     videoRefs.current.forEach((v) => v && observer.observe(v));
-
-    return () => {
-      observer.disconnect();
-      hlsInstances.forEach(hls => hls.destroy()); 
-    };
+    return () => observer.disconnect();
   }, []);
 
   return (
-    <div className="h-screen w-full bg-black overflow-y-scroll snap-y snap-mandatory relative">
+    <main className="h-[100dvh] w-full bg-black overflow-y-scroll snap-y snap-mandatory scrollbar-hide" style={{ touchAction: 'pan-y' }}>
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        video::cue { background: rgba(0, 0, 0, 0.6); color: white; font-size: 1.2rem; font-weight: bold; }
+      `}</style>
+
       {videosData.map((vid, index) => (
-        <div key={vid.id} className="relative h-screen w-full snap-start flex justify-center bg-black">
-          
+        <section key={vid.id} className="relative h-[100dvh] w-full snap-start flex justify-center items-center bg-black">
           <video
             ref={(el) => { videoRefs.current[index] = el; }}
-            className="h-full max-w-[500px] w-full object-cover" 
-            loop playsInline muted controls
-            crossOrigin="anonymous"
+            src={vid.src} // Dùng trực tiếp src MP4
+            className="h-full w-full max-w-[500px] object-cover" 
+            loop playsInline muted controls crossOrigin="anonymous"
           >
-            {/* Tạm thời để file sub cục bộ, nếu không hiện cũng kệ nó, ưu tiên chạy video trước */}
             <track label="Tiếng Việt" kind="subtitles" srcLang="vi" src={vid.sub} default />
           </video>
           
-          <div className="absolute bottom-10 left-4 text-white z-10 pointer-events-none drop-shadow-lg">
-            <h3 className="text-xl font-bold">{vid.title}</h3>
-            <p className="text-sm opacity-80">Xem phim không cần não</p>
+          <div className="absolute bottom-16 left-4 text-white z-10 pointer-events-none drop-shadow-lg">
+            <h3 className="text-2xl font-bold">{vid.title}</h3>
+            <p className="text-sm opacity-70">Xem phim không cần não</p>
           </div>
-
-        </div>
+        </section>
       ))}
-    </div>
+    </main>
   );
 }
