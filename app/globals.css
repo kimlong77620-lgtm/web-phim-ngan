@@ -25,20 +25,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 video::cue {
-  /* 1. KHAI TỬ NỀN ĐEN */
-  background-color: transparent !important;
-
-  /* 2. TẠO VIỀN ĐEN SẮC NÉT (Giúp chữ trắng nổi bật trên mọi khung hình) */
-  color: white;
+  background-color: transparent !important; /* Xóa sạch nền đen */
+  color: white;                            /* Chữ trắng */
   text-shadow: 
-    -2px -2px 0 #000,  
-     2px -2px 0 #000,
-    -2px  2px 0 #000,
-     2px  2px 0 #000,
-     0px 2px 4px rgba(0,0,0,0.9); /* Đổ bóng mạnh để nhìn rõ hơn */
-
-  /* 3. KÍCH THƯỚC CHUẨN ĐIỆN THOẠI */
-  font-size: 1.4rem; 
-  font-weight: 800; /* Cho chữ thật đậm đà */
-  font-family: sans-serif;
+    -1px -1px 0 rgba(0,0,0,0.5),  
+     1px -1px 0 rgba(0,0,0,0.5),
+    -1px  1px 0 rgba(0,0,0,0.5),
+     1px  1px 0 rgba(0,0,0,0.5); /* Viền đen nhạt đúng ý tiên sinh */
+  font-size: 1.2rem;
+  font-weight: bold;
 }
