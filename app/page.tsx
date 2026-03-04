@@ -46,14 +46,30 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
 
   const syncAudioWithVideo = () => {
     if (isThuyetMinh && videoRef.current && audioRef.current) {
+      // Ép thời gian âm thanh khớp với video
       audioRef.current.currentTime = videoRef.current.currentTime;
-      if (!videoRef.current.paused) audioRef.current.play();
+      
+      // Nếu video đang phát thì ép âm thanh cũng phải phát
+      if (!videoRef.current.paused) {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            console.log("Trình duyệt chặn! Cần khách chạm vào màn hình.");
+          });
+        }
+      }
     }
   };
 
   useEffect(() => {
     if (videoRef.current) {
+      // 0.3 là 30% âm lượng gốc
       videoRef.current.volume = isThuyetMinh ? 0.3 : 1.0;
+      
+      // Nếu bật TM mà video đang chạy, thì kích hoạt phát tiếng ngay
+      if (isThuyetMinh && !videoRef.current.paused) {
+        syncAudioWithVideo();
+      }
     }
   }, [isThuyetMinh]);
 
@@ -78,7 +94,14 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
         onWaiting={() => audioRef.current?.pause()}
         onSeeked={syncAudioWithVideo}
       />
-      <audio ref={audioRef} src={phim.audioSrc} className="hidden" />
+      <audio
+          ref={audioRef}
+          src={phim.audioSrc}
+          playsInline
+          onLoadedMetadata={() => {
+            if (isThuyetMinh) syncAudioWithVideo();
+          }}
+        />
 
 {/* Cột Action Bar (Nút Tim, Share, Công tắc TM/SUB) */}
       <div className="absolute right-4 bottom-32 flex flex-col gap-6 items-center z-10">
