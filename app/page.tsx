@@ -11,7 +11,7 @@ const danhSachPhim = [
     title: "Sau Khi Ẩn Hôn Với Thương Tổng, Hình Tượng Lạnh Lùng Của Anh Ấy Sụp Đổ - Bản Full",
     thumb: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/thumbnail_dad53ad2.jpg", // Link ảnh Poster phim
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/play_720p.mp4",
-    audioSrc: "https://vz-f76c4946-df1.b-cdn.net/95270cae-75f8-4f2a-91bf-96ad5cf8fb96/play.mp3",
+    audioSrc: "https://vz-f76c4946-df1.b-cdn.net/95270cae-75f8-4f2a-91bf-96ad5cf8fb96/play_720p.mp4",
   },
   {
     id: 2,
