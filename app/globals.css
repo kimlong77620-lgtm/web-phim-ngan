@@ -24,11 +24,21 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-/* Tùy chỉnh phụ đề cho toàn trang web */
 video::cue {
-  background: rgba(0, 0, 0, 0.7); /* Nền đen mờ */
-  color: #ffffff;                /* Chữ trắng */
-  font-size: 20px;               /* Chỉnh độ to nhỏ */
-  font-weight: bold;
-  font-family: Arial, sans-serif;
+  /* 1. XÓA NỀN ĐEN */
+  background-color: transparent !important;
+
+  /* 2. TẠO VIỀN ĐEN (Dày và rõ cho phim dọc) */
+  color: white;
+  text-shadow: 
+    -2px -2px 0 #000,  
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+     0px 4px 6px rgba(0,0,0,0.8); /* Đổ bóng sâu để chữ nổi khối */
+
+  /* 3. KÍCH THƯỚC (Ước lượng cho mobile) */
+  font-size: 1.3rem; /* Khoảng 22-24px, rất vừa mắt trên điện thoại */
+  font-weight: 700;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
