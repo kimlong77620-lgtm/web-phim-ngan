@@ -32,44 +32,29 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
   const [isThuyetMinh, setIsThuyetMinh] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Ngăn click nhầm vào video
-    // Copy link trang web hiện tại kèm theo lời mời
-    const noiDungCopy = `Đang xem ${phim.title} cực cuốn tại Sạp nhà Zhaodi! Vào xem ngay: ${window.location.href}`;
-    navigator.clipboard.writeText(noiDungCopy);
-    
-    // Hiện chữ "Đã chép" trong 2 giây rồi tắt
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
-  };
-  // ===================================
-
+  // HÀM ĐỒNG BỘ: TỰ ĐỘNG NHÍCH 0.01s ĐỂ CÓ TIẾNG (THAY CHO VIỆC KÉO THANH BAR)
   const syncAudioWithVideo = () => {
     if (isThuyetMinh && videoRef.current && audioRef.current) {
-      // Ép thời gian âm thanh khớp với video
+      // Ép thời gian audio khớp video
       audioRef.current.currentTime = videoRef.current.currentTime;
       
-      // Nếu video đang phát thì ép âm thanh cũng phải phát
+      // Tách biệt âm lượng: Nhạc gốc 30% - Thuyết minh 100%
+      videoRef.current.volume = 0.3;
+      audioRef.current.volume = 1.0;
+
       if (!videoRef.current.paused) {
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            console.log("Trình duyệt chặn! Cần khách chạm vào màn hình.");
-          });
-        }
+        audioRef.current.play().catch(() => console.log("Chờ chạm màn hình"));
       }
     }
   };
 
+  // THEO DÕI ĐỂ TỰ ĐỘNG "QUÉT" KHI ĐANG PHÁT
   useEffect(() => {
-    if (videoRef.current) {
-      // 0.3 là 30% âm lượng gốc
-      videoRef.current.volume = isThuyetMinh ? 0.3 : 1.0;
-      
-      // Nếu bật TM mà video đang chạy, thì kích hoạt phát tiếng ngay
-      if (isThuyetMinh && !videoRef.current.paused) {
-        syncAudioWithVideo();
-      }
+    if (isThuyetMinh) {
+      syncAudioWithVideo();
+    } else if (videoRef.current) {
+      videoRef.current.volume = 1.0; // Về 100% nhạc gốc khi tắt TM
+      audioRef.current?.pause();
     }
   }, [isThuyetMinh]);
 
@@ -130,14 +115,27 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
           )}
         </button>
 
-        {/* NÚT 3: CÔNG TẮC TM/SUB */}
+      {/* NÚT 3: CÔNG TẮC TM/SUB (CẢI TIẾN VOLUME & AUTO-SEEK) */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             const status = !isThuyetMinh;
+            
+            // 1. Cập nhật trạng thái
             setIsThuyetMinh(status);
-            if (status) syncAudioWithVideo();
-            else audioRef.current?.pause();
+
+            // 2. Ép trình duyệt "nhận diện" lại luồng âm thanh
+            if (status && videoRef.current && audioRef.current) {
+              videoRef.current.volume = 0.3; // Nhạc gốc nhỏ xuống 30%
+              audioRef.current.volume = 1.0; // Thuyết minh to rõ 100%
+              
+              // Tự động nhích nhẹ 0.01 giây để kích hoạt tiếng
+              videoRef.current.currentTime += 0.01;
+              syncAudioWithVideo();
+            } else if (videoRef.current) {
+              videoRef.current.volume = 1.0; // Về bình thường
+              audioRef.current?.pause();
+            }
           }}
           className="flex flex-col items-center group"
         >
