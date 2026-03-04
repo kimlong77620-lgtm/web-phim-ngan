@@ -25,20 +25,20 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 video::cue {
-  /* 1. XÓA NỀN ĐEN */
+  /* 1. KHAI TỬ NỀN ĐEN */
   background-color: transparent !important;
 
-  /* 2. TẠO VIỀN ĐEN (Dày và rõ cho phim dọc) */
+  /* 2. TẠO VIỀN ĐEN SẮC NÉT (Giúp chữ trắng nổi bật trên mọi khung hình) */
   color: white;
   text-shadow: 
     -2px -2px 0 #000,  
      2px -2px 0 #000,
     -2px  2px 0 #000,
      2px  2px 0 #000,
-     0px 4px 6px rgba(0,0,0,0.8); /* Đổ bóng sâu để chữ nổi khối */
+     0px 2px 4px rgba(0,0,0,0.9); /* Đổ bóng mạnh để nhìn rõ hơn */
 
-  /* 3. KÍCH THƯỚC (Ước lượng cho mobile) */
-  font-size: 1.3rem; /* Khoảng 22-24px, rất vừa mắt trên điện thoại */
-  font-weight: 700;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* 3. KÍCH THƯỚC CHUẨN ĐIỆN THOẠI */
+  font-size: 1.4rem; 
+  font-weight: 800; /* Cho chữ thật đậm đà */
+  font-family: sans-serif;
 }
