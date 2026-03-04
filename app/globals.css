@@ -34,4 +34,11 @@ video::cue {
      1px  1px 0 rgba(0,0,0,0.5); /* Viền đen nhạt đúng ý tiên sinh */
   font-size: 1.2rem;
   font-weight: bold;
+}video::cue {
+  /* Ép phụ đề bay lên cao hơn một chút so với mặc định */
+  display: block;
+  line-height: 8; /* Tăng số này nếu muốn sub bay cao hơn nữa */
+  background-color: transparent !important;
+  color: white;
+  text-shadow: 1px 1px 2px black;
 }
