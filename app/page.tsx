@@ -34,7 +34,7 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
   const [isCopied, setIsCopied] = useState(false);
   const [showUI, setShowUI] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const [likes, setLikes] = useState(0); // Con số khởi đầu
+  const [likes, setLikes] = useState(67000); // Con số khởi đầu
 const [isLiked, setIsLiked] = useState(false); // Trạng thái đã nhấn hay chưa
 
   // 1. FACEBOOK SDK CHO BÌNH LUẬN
@@ -101,74 +101,55 @@ const [isLiked, setIsLiked] = useState(false); // Trạng thái đã nhấn hay 
     }
   }, [isThuyetMinh, syncAudioWithVideo]);
 
-return (
-    <div className="relative w-full h-[100dvh] bg-black flex items-center justify-center overflow-hidden">
-      <video 
-        ref={videoRef} 
-        className="w-full h-full object-contain z-10" 
-        playsInline 
-        loop 
-        preload="metadata" 
-      />
-      <audio ref={audioRef} src={phim.audioSrc} preload="auto" className="hidden" />
+  return (
+    <div className="absolute top-0 left-0 w-full h-full bg-black overflow-y-auto z-50">
+      {/* ================= KHU VỰC CHIẾU PHIM TỐI GIẢN ================= */}
+      <div 
+        className="relative w-full h-[100dvh] flex items-center justify-center bg-black overflow-hidden shrink-0"
+        onMouseMove={resetTimer} onTouchStart={resetTimer} onClick={resetTimer}
+      >
+        <video
+          ref={videoRef}
+          className="w-full max-h-full object-contain z-10"
+          controls
+          playsInline
+          autoPlay
+          onPlay={() => isThuyetMinh && audioRef.current?.play()}
+          onPause={() => audioRef.current?.pause()}
+          onSeeking={() => isThuyetMinh && audioRef.current && videoRef.current ? (audioRef.current.currentTime = videoRef.current.currentTime) : null}
+        />
+        <audio ref={audioRef} src={phim.audioSrc} preload="auto" className="hidden" />
 
-      {/* CỤM NÚT BÊN PHẢI - ĐÃ SỬA LỖI BABSOLUTE VÀ FLEX-COL */}
-      <div className="absolute right-4 bottom-32 flex flex-col gap-6 items-center z-50">
-        
-        {/* NÚT TRÁI TIM */}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!isLiked) { setLikes(prev => prev + 1); setIsLiked(true); }
-            else { setLikes(prev => prev - 1); setIsLiked(false); }
-          }} 
-          className="flex flex-col items-center group"
-        >
-          <div className={`p-2.5 backdrop-blur-md rounded-full transition-all duration-300 ${isLiked ? "bg-red-500 text-white scale-110 shadow-lg" : "bg-black/40 text-white/70"}`}>
-            {isLiked ? "❤️" : "🤍"}
-          </div>
-          <span className="text-white text-[10px] mt-1 font-bold drop-shadow">
-            {likes > 0 ? likes.toLocaleString() : "Thích"}
-          </span>
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className={`absolute top-4 left-4 z-50 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 transition-all duration-500 backdrop-blur-sm ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
 
-        {/* NÚT CHIA SẺ */}
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            navigator.clipboard.writeText(window.location.href);
-            setIsCopied(true);
-            setTimeout(() => setIsCopied(false), 2000);
-          }}
-          className="flex flex-col items-center relative group"
-        >
-          <div className="p-2.5 bg-black/40 backdrop-blur-md rounded-full text-white/70 text-xl border border-white/10 group-hover:bg-blue-600 transition-colors">
-            🔗
-          </div>
-          <span className="text-white text-[10px] mt-1 font-bold">Chia sẻ</span>
-          {isCopied && (
-            <span className="absolute -left-20 top-2 bg-green-500 text-white text-[10px] px-2 py-1 rounded shadow-lg animate-bounce font-bold">
-              Đã chép
-            </span>
-          )}
-        </button>
+        <div className={`absolute right-3 bottom-24 flex flex-col gap-4 items-center z-50 transition-all duration-500 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <button className="flex flex-col items-center group">
+            <div className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white text-lg shadow-lg border border-white/20">❤️</div>
+            <span className="text-white text-[10px] mt-1 font-medium drop-shadow">67k</span>
+          </button>
 
-        {/* NÚT CHẾ ĐỘ */}
-        <button
-          onClick={(e) => { e.stopPropagation(); setIsThuyetMinh(!isThuyetMinh); }}
-          className="flex flex-col items-center group"
-        >
-          <div className={`p-2.5 rounded-full border transition-all duration-300 ${isThuyetMinh ? "bg-yellow-500 border-yellow-400" : "bg-black/40 border-white/10"}`}>
-            <span className="text-[10px] font-black text-white uppercase">{isThuyetMinh ? "TM" : "SUB"}</span>
-          </div>
-          <span className="text-white text-[10px] mt-1 font-bold">Chế độ</span>
-        </button>
+          <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(window.location.href); setIsCopied(true); setTimeout(() => setIsCopied(false), 2000); }} className="flex flex-col items-center group relative">
+            <div className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white text-lg group-hover:bg-blue-600 transition-colors shadow-lg border border-white/20">🔗</div>
+            <span className="text-white text-[10px] mt-1 font-medium drop-shadow">Chia sẻ</span>
+            {isCopied && <span className="absolute -left-16 top-1 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded">Đã chép</span>}
+          </button>
+
+          <button onClick={(e) => { e.stopPropagation(); const status = !isThuyetMinh; setIsThuyetMinh(status); if (status && videoRef.current) { videoRef.current.currentTime += 0.01; setTimeout(() => syncAudioWithVideo(), 100); } }} className="flex flex-col items-center group">
+            <div className={`p-2 rounded-full border transition-all duration-300 backdrop-blur-sm shadow-lg ${isThuyetMinh ? "border-yellow-500 bg-yellow-500/30" : "border-white/30 bg-black/40"}`}>
+              <span className="text-[10px] font-bold text-white uppercase leading-none">{isThuyetMinh ? "TM" : "SUB"}</span>
+            </div>
+            <span className="text-white text-[10px] mt-1 font-medium drop-shadow">Chế độ</span>
+          </button>
+        </div>
       </div>
 
-      {/* TÊN PHIM */}
-      <div className="absolute left-4 bottom-10 z-50">
-        <h2 className="text-white font-black text-lg drop-shadow-lg mb-1">@sapnhazhaodi</h2>
-        <p className="text-white/90 text-sm max-w-[280px] line-clamp-2 leading-tight font-medium drop-shadow-md">{phim.title}</p>
+      {/* ================= KHU VỰC BÌNH LUẬN FACEBOOK ================= */}
+      <div className="w-full bg-white p-4 min-h-[50vh]">
+        <h3 className="text-black font-bold text-lg mb-2 border-b-2 border-blue-500 inline-block pb-1">💬 Đánh giá & Bình luận</h3>
+        <p className="text-xs text-gray-500 mb-4">Sử dụng tài khoản Facebook của bạn để thảo luận về bộ phim này nhé!</p>
+        <div className="fb-comments w-full" data-href={`https://sapnhazhaodi.vercel.app/phim/${phim.id}`} data-width="100%" data-numposts="5" data-colorscheme="light"></div>
       </div>
     </div>
   );
