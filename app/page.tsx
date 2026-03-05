@@ -135,27 +135,30 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
     if (videoRef.current) videoRef.current.playbackRate = nextSpeed;
   };
 
-  const handleCopy = (e: React.MouseEvent) => {
+  // SỬA LỖI COPY TẠI ĐÂY: Dùng chuẩn async/await kết hợp fallback để chắc chắn copy được 100%
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     resetTimer();
     
     const shareUrl = `${window.location.origin}${window.location.pathname}?phimId=${phim.id}`;
     
-    const textArea = document.createElement("textarea");
-    textArea.value = shareUrl;
-    textArea.style.position = "fixed"; 
-    textArea.style.left = "-9999px";
-    document.body.appendChild(textArea);
-    textArea.select();
-    
     try {
-      document.execCommand("copy");
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        textArea.style.position = "fixed"; 
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        textArea.remove();
+      }
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
       console.error("Không thể copy", err);
-    } finally {
-      textArea.remove();
     }
   };
 
@@ -205,21 +208,32 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
           </button>
 
           <div className="relative flex items-center justify-center">
+            {/* SỬA LỖI ÂM LƯỢNG TẠI ĐÂY: Thêm touch-none, onTouchMove chống cuộn, đổi sang onInput */}
             {showVolumeSlider && (
-              <div className="absolute right-full mr-2 transition-all duration-300 w-24 bg-black/60 p-2.5 rounded-full flex items-center backdrop-blur-md shadow-lg">
+              <div 
+                className="absolute right-full mr-2 transition-all duration-300 w-28 bg-black/60 p-3 rounded-full flex items-center backdrop-blur-md shadow-lg z-50"
+                onPointerDown={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); resetTimer(); }}
+              >
                 <input
                   type="range"
-                  min="0" max="1" step="0.05"
+                  min="0" max="1" step="0.01"
                   value={isMuted ? 0 : volume}
-                  onPointerDown={(e) => e.stopPropagation()} 
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
+                  onInput={(e) => {
+                    e.stopPropagation();
+                    const val = parseFloat(e.currentTarget.value);
                     setVolume(val);
                     setIsMuted(val === 0);
-                    if (videoRef.current) videoRef.current.volume = val;
+                    if (videoRef.current) {
+                      videoRef.current.volume = val;
+                      videoRef.current.muted = (val === 0);
+                    }
                     resetTimer();
                   }}
-                  className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-yellow-500"
+                  className="w-full h-1.5 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-yellow-500 relative z-50 touch-none"
                 />
               </div>
             )}
@@ -289,7 +303,6 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
 function PhongChieu({ phim: initialPhim, onClose }: { phim: any; onClose: () => void }) {
   const [activeId, setActiveId] = useState(initialPhim.id);
 
-  // ĐÃ SỬA: Lấy danh sách phim hiển thị y như ngoài trang chủ (mới lên trước) để cuộn cho đúng mạch
   const danhSachPhimHienThi = [...danhSachPhim].sort((a, b) => b.id - a.id);
 
   useEffect(() => {
@@ -315,7 +328,6 @@ function PhongChieu({ phim: initialPhim, onClose }: { phim: any; onClose: () => 
 
   return (
     <div className="absolute top-0 left-0 w-full h-[100dvh] bg-black z-50 overflow-y-scroll snap-y snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      {/* MAP THEO DANH SÁCH ĐÃ SẮP XẾP */}
       {danhSachPhimHienThi.map((phimItem) => (
         <div
           key={phimItem.id}
@@ -370,7 +382,6 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showMenu]);
 
-  // ĐÃ SỬA: Sắp xếp ID lớn nhất (mới cập nhật) lên đầu
   const phimHienThi = danhSachPhim
     .filter((phim) => {
       const keyword = tuKhoa.toLowerCase();
