@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Hls from "hls.js";
 
 
 // ==========================================
@@ -11,14 +12,14 @@ const danhSachPhim = [
     id: 1,
     title: "Sau Khi Ẩn Hôn Với Thương Tổng, Hình Tượng Lạnh Lùng Của Anh Ấy Sụp Đổ - Bản Full",
     thumb: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/thumbnail_dad53ad2.jpg", // Link ảnh Poster phim
-    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/play_720p.mp4",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/playlist.m3u8",
     audioSrc: "https://vz-f76c4946-df1.b-cdn.net/95270cae-75f8-4f2a-91bf-96ad5cf8fb96/play_720p.mp4",
   },
   {
     id: 2,
     title: "Trọng Sinh Vả Mặt Tổng Tài - Bản Full",
     thumb: "https://via.placeholder.com/300x450/1f2937/fbbf24?text=Poster+Phim+2", // Link ảnh Poster phim
-    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/62e93e0d-1095-4b83-b7a7-5dfa0edcbb7b/play_720p.mp4",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/2c7d772d-92ec-4df8-a0cf-a76c7ed88b43/playlist.m3u8",
     audioSrc: "LINK_MP3_THUYET_MINH_2",
   },
   // Thêm phim mới thì copy khối ở trên dán xuống đây
@@ -26,38 +27,50 @@ const danhSachPhim = [
 
 // ==========================================
 // 2. GIAO DIỆN PHÒNG CHIẾU (Khi ấn vào xem phim)
-// ==========================================
 function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isThuyetMinh, setIsThuyetMinh] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  
   const [showUI, setShowUI] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1. FACEBOOK SDK CHO BÌNH LUẬN THẬT
+  // 1. FACEBOOK SDK CHO BÌNH LUẬN
   useEffect(() => {
     if (!document.getElementById('fb-sdk')) {
       const script = document.createElement('script');
       script.id = 'fb-sdk';
       script.src = "https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v19.0";
-      script.async = true;
-      script.defer = true;
-      script.crossOrigin = "anonymous";
+      script.async = true; script.defer = true; script.crossOrigin = "anonymous";
       document.body.appendChild(script);
     } else if ((window as any).FB) {
       (window as any).FB.XFBML.parse();
     }
   }, []);
 
-  // 2. CƠ CHẾ TỰ ẨN GIAO DIỆN
+  // 2. BỘ GIẢI MÃ BẢO MẬT BUNNY STREAM (HLS.JS)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Nếu trình duyệt hỗ trợ HLS.js (Chrome, Cốc Cốc, Edge, Firefox)
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(phim.videoSrc); // Load link .m3u8
+      hls.attachMedia(video);
+      return () => hls.destroy(); // Dọn dẹp khi đóng phim
+    } 
+    // Dành cho Safari (tự hỗ trợ m3u8 không cần giải mã)
+    else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = phim.videoSrc;
+    }
+  }, [phim.videoSrc]);
+
+  // 3. CƠ CHẾ TỰ ẨN GIAO DIỆN
   const resetTimer = useCallback(() => {
     setShowUI(true);
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setShowUI(false);
-    }, 5000);
+    timerRef.current = setTimeout(() => setShowUI(false), 5000);
   }, []);
 
   useEffect(() => {
@@ -65,7 +78,7 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [resetTimer]);
 
-  // 3. ĐỒNG BỘ ÂM THANH (CHỈNH VOLUME NHẠC GỐC 30%)
+  // 4. ĐỒNG BỘ ÂM THANH (CHỈNH VOLUME NHẠC GỐC 30%)
   const syncAudioWithVideo = useCallback(() => {
     if (isThuyetMinh && videoRef.current && audioRef.current) {
       audioRef.current.currentTime = videoRef.current.currentTime;
@@ -88,28 +101,13 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
 
   return (
     <div className="absolute top-0 left-0 w-full h-full bg-black overflow-y-auto z-50">
-      
       {/* ================= KHU VỰC CHIẾU PHIM TỐI GIẢN ================= */}
       <div 
         className="relative w-full h-[100dvh] flex items-center justify-center bg-black overflow-hidden shrink-0"
-        onMouseMove={resetTimer}
-        onTouchStart={resetTimer}
-        onClick={resetTimer}
+        onMouseMove={resetTimer} onTouchStart={resetTimer} onClick={resetTimer}
       >
-        {/* DANMAKU - BÌNH LUẬN CHẠY NGANG */}
-        <div className="absolute top-12 left-0 w-full h-1/3 pointer-events-none z-0 overflow-hidden opacity-80">
-          <style>{`
-            @keyframes danmaku { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
-            .cmt-chay { animation: danmaku linear infinite; white-space: nowrap; position: absolute; text-shadow: 1px 1px 2px black; }
-          `}</style>
-          <div className="cmt-chay text-white text-sm font-medium" style={{ top: '10%', animationDelay: '0s', animationDuration: '9s' }}>Phim cuốn quá ad ơi! 🔥</div>
-          <div className="cmt-chay text-white text-sm font-medium" style={{ top: '30%', animationDelay: '3s', animationDuration: '11s' }}>Thương tổng ngầu đét 😎</div>
-          <div className="cmt-chay text-yellow-400 text-sm font-medium" style={{ top: '60%', animationDelay: '5s', animationDuration: '10s' }}>Hóng tập tiếp theo quá!!! ❤️</div>
-        </div>
-
         <video
           ref={videoRef}
-          src={phim.videoSrc}
           className="w-full max-h-full object-contain z-10"
           controls
           playsInline
@@ -118,75 +116,39 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
           onPause={() => audioRef.current?.pause()}
           onSeeking={() => isThuyetMinh && audioRef.current && videoRef.current ? (audioRef.current.currentTime = videoRef.current.currentTime) : null}
         />
-
         <audio ref={audioRef} src={phim.audioSrc} preload="auto" className="hidden" />
 
-        {/* NÚT QUAY LẠI MŨI TÊN THANH LỊCH (TỰ ẨN) */}
-        <button 
-          onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className={`absolute top-4 left-4 z-50 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 transition-all duration-500 backdrop-blur-sm ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+        <button onClick={(e) => { e.stopPropagation(); onClose(); }} className={`absolute top-4 left-4 z-50 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 transition-all duration-500 backdrop-blur-sm ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
         </button>
 
-        {/* CỘT CHỨC NĂNG NHỎ GỌN (TỰ ẨN) */}
         <div className={`absolute right-3 bottom-24 flex flex-col gap-4 items-center z-50 transition-all duration-500 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <button className="flex flex-col items-center group">
             <div className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white text-lg shadow-lg border border-white/20">❤️</div>
             <span className="text-white text-[10px] mt-1 font-medium drop-shadow">67k</span>
           </button>
 
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard.writeText(window.location.href);
-              setIsCopied(true);
-              setTimeout(() => setIsCopied(false), 2000);
-            }}
-            className="flex flex-col items-center group relative"
-          >
+          <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(window.location.href); setIsCopied(true); setTimeout(() => setIsCopied(false), 2000); }} className="flex flex-col items-center group relative">
             <div className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white text-lg group-hover:bg-blue-600 transition-colors shadow-lg border border-white/20">🔗</div>
             <span className="text-white text-[10px] mt-1 font-medium drop-shadow">Chia sẻ</span>
             {isCopied && <span className="absolute -left-16 top-1 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded">Đã chép</span>}
           </button>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const status = !isThuyetMinh;
-              setIsThuyetMinh(status);
-              if (status && videoRef.current) {
-                videoRef.current.currentTime += 0.01; 
-                setTimeout(() => syncAudioWithVideo(), 100);
-              }
-            }}
-            className="flex flex-col items-center group"
-          >
+          <button onClick={(e) => { e.stopPropagation(); const status = !isThuyetMinh; setIsThuyetMinh(status); if (status && videoRef.current) { videoRef.current.currentTime += 0.01; setTimeout(() => syncAudioWithVideo(), 100); } }} className="flex flex-col items-center group">
             <div className={`p-2 rounded-full border transition-all duration-300 backdrop-blur-sm shadow-lg ${isThuyetMinh ? "border-yellow-500 bg-yellow-500/30" : "border-white/30 bg-black/40"}`}>
-              <span className="text-[10px] font-bold text-white uppercase leading-none">
-                {isThuyetMinh ? "TM" : "SUB"}
-              </span>
+              <span className="text-[10px] font-bold text-white uppercase leading-none">{isThuyetMinh ? "TM" : "SUB"}</span>
             </div>
             <span className="text-white text-[10px] mt-1 font-medium drop-shadow">Chế độ</span>
           </button>
         </div>
       </div>
 
-      {/* ================= KHU VỰC BÌNH LUẬN FACEBOOK THẬT ================= */}
+      {/* ================= KHU VỰC BÌNH LUẬN FACEBOOK ================= */}
       <div className="w-full bg-white p-4 min-h-[50vh]">
         <h3 className="text-black font-bold text-lg mb-2 border-b-2 border-blue-500 inline-block pb-1">💬 Đánh giá & Bình luận</h3>
         <p className="text-xs text-gray-500 mb-4">Sử dụng tài khoản Facebook của bạn để thảo luận về bộ phim này nhé!</p>
-        <div 
-          className="fb-comments w-full" 
-          data-href={`https://sapnhazhaodi.vercel.app/phim/${phim.id}`} 
-          data-width="100%" 
-          data-numposts="5"
-          data-colorscheme="light"
-        ></div>
+        <div className="fb-comments w-full" data-href={`https://sapnhazhaodi.vercel.app/phim/${phim.id}`} data-width="100%" data-numposts="5" data-colorscheme="light"></div>
       </div>
-
     </div>
   );
 }
