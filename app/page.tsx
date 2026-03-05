@@ -17,9 +17,33 @@ const danhSachPhim = [
   },
   {
     id: 2,
-    title: "Trọng Sinh Vả Mặt Tổng Tài - Bản Full",
-    thumb: "https://vz-f76c4946-df1.b-cdn.net/2c7d772d-92ec-4df8-a0cf-a76c7ed88b43/thumbnail_3471e54b.jpg",
-    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/2c7d772d-92ec-4df8-a0cf-a76c7ed88b43/playlist.m3u8",
+    title: "Nụ Hôn Ánh Trăng Của Thiên Tuế Đại Nhân - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/3f32b4e6-450d-45d0-989f-724a5547bd2a/thumbnail_4b03d11f.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/3f32b4e6-450d-45d0-989f-724a5547bd2a/playlist.m3u8",
+    theLoai: ["Huyền Huyễn", "Ngôn Tình"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
+  {
+    id: 3,
+    title: "Xuyên Thành Bạn Gái Cũ Tâm Cơ Của Nam Chính - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/2933f93d-cdbb-4bd9-9eb1-628d99cb9394/thumbnail_3e21ea7c.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/2933f93d-cdbb-4bd9-9eb1-628d99cb9394/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
+  {
+    id: 4,
+    title: "Giang Sơn Như Họa, Thất Phượng Cùng Ta Đoạt Thiên Hạ - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/5c0a3382-c740-4830-8324-21fac7e18ee1/thumbnail.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/5c0a3382-c740-4830-8324-21fac7e18ee1/playlist.m3u8",
+    theLoai: ["Xuyên Không", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
+  {
+    id: 5,
+    title: "Tuyệt Tình Chưởng Môn Ngã Vào Lòng Ta - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/9f4d0e7a-d3cb-4085-bc9f-53d7a91d2129/thumbnail.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/9f4d0e7a-d3cb-4085-bc9f-53d7a91d2129/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
   },
