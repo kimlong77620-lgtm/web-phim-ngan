@@ -32,129 +32,161 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isThuyetMinh, setIsThuyetMinh] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const handleShare = (e: any) => {
-    e.stopPropagation();
-    navigator.clipboard.writeText(window.location.href); // Lấy link web
-    setIsCopied(true); // Hiện chữ "Đã chép"
-    setTimeout(() => setIsCopied(false), 2000); // Tự ẩn chữ sau 2 giây
-  };
+  
+  const [showUI, setShowUI] = useState(true);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // HÀM ĐỒNG BỘ: TỰ ĐỘNG NHÍCH 0.01s ĐỂ CÓ TIẾNG (THAY CHO VIỆC KÉO THANH BAR)
-  const syncAudioWithVideo = () => {
+  // 1. FACEBOOK SDK CHO BÌNH LUẬN THẬT
+  useEffect(() => {
+    if (!document.getElementById('fb-sdk')) {
+      const script = document.createElement('script');
+      script.id = 'fb-sdk';
+      script.src = "https://connect.facebook.net/vi_VN/sdk.js#xfbml=1&version=v19.0";
+      script.async = true;
+      script.defer = true;
+      script.crossOrigin = "anonymous";
+      document.body.appendChild(script);
+    } else if ((window as any).FB) {
+      (window as any).FB.XFBML.parse();
+    }
+  }, []);
+
+  // 2. CƠ CHẾ TỰ ẨN GIAO DIỆN
+  const resetTimer = useCallback(() => {
+    setShowUI(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setShowUI(false);
+    }, 5000);
+  }, []);
+
+  useEffect(() => {
+    resetTimer();
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [resetTimer]);
+
+  // 3. ĐỒNG BỘ ÂM THANH (CHỈNH VOLUME NHẠC GỐC 30%)
+  const syncAudioWithVideo = useCallback(() => {
     if (isThuyetMinh && videoRef.current && audioRef.current) {
-      // Ép thời gian audio khớp video
       audioRef.current.currentTime = videoRef.current.currentTime;
-      
-      // Tách biệt âm lượng: Nhạc gốc 30% - Thuyết minh 100%
-      videoRef.current.volume = 0.3;
-      audioRef.current.volume = 1.0;
-
+      videoRef.current.volume = 0.3; 
+      audioRef.current.volume = 1.0; 
       if (!videoRef.current.paused) {
-        audioRef.current.play().catch(() => console.log("Chờ chạm màn hình"));
+        audioRef.current.play().catch(() => console.log("Cần chạm màn hình"));
       }
     }
-  };
+  }, [isThuyetMinh]);
 
-  // THEO DÕI ĐỂ TỰ ĐỘNG "QUÉT" KHI ĐANG PHÁT
   useEffect(() => {
     if (isThuyetMinh) {
       syncAudioWithVideo();
     } else if (videoRef.current) {
-      videoRef.current.volume = 1.0; // Về 100% nhạc gốc khi tắt TM
+      videoRef.current.volume = 1.0; 
       audioRef.current?.pause();
     }
-  }, [isThuyetMinh]);
+  }, [isThuyetMinh, syncAudioWithVideo]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
-      {/* Nút Quay Lại Trang Chủ */}
-      <button 
-        onClick={onClose}
-        className="absolute top-6 left-4 z-50 bg-black/50 text-white p-2 rounded-full backdrop-blur-sm border border-gray-600 flex items-center gap-2 pr-4"
+    <div className="absolute top-0 left-0 w-full h-full bg-black overflow-y-auto z-50">
+      
+      {/* ================= KHU VỰC CHIẾU PHIM TỐI GIẢN ================= */}
+      <div 
+        className="relative w-full h-[100dvh] flex items-center justify-center bg-black overflow-hidden shrink-0"
+        onMouseMove={resetTimer}
+        onTouchStart={resetTimer}
+        onClick={resetTimer}
       >
-        <span className="text-xl leading-none">🔙</span> Quay lại
-      </button>
+        {/* DANMAKU - BÌNH LUẬN CHẠY NGANG */}
+        <div className="absolute top-12 left-0 w-full h-1/3 pointer-events-none z-0 overflow-hidden opacity-80">
+          <style>{`
+            @keyframes danmaku { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+            .cmt-chay { animation: danmaku linear infinite; white-space: nowrap; position: absolute; text-shadow: 1px 1px 2px black; }
+          `}</style>
+          <div className="cmt-chay text-white text-sm font-medium" style={{ top: '10%', animationDelay: '0s', animationDuration: '9s' }}>Phim cuốn quá ad ơi! 🔥</div>
+          <div className="cmt-chay text-white text-sm font-medium" style={{ top: '30%', animationDelay: '3s', animationDuration: '11s' }}>Thương tổng ngầu đét 😎</div>
+          <div className="cmt-chay text-yellow-400 text-sm font-medium" style={{ top: '60%', animationDelay: '5s', animationDuration: '10s' }}>Hóng tập tiếp theo quá!!! ❤️</div>
+        </div>
 
-      <video
-        ref={videoRef}
-        src={phim.videoSrc}
-        className="h-full w-full max-w-md object-cover" // max-w-md giúp video không bị bè ngang trên màn hình máy tính
-        controls={true}
-        autoPlay={true}
-        onPlay={() => isThuyetMinh && audioRef.current?.play()}
-        onPause={() => audioRef.current?.pause()}
-        onWaiting={() => audioRef.current?.pause()}
-        onSeeked={syncAudioWithVideo}
-      />
-      <audio
-          ref={audioRef}
-          src={phim.audioSrc}
+        <video
+          ref={videoRef}
+          src={phim.videoSrc}
+          className="w-full max-h-full object-contain z-10"
+          controls
           playsInline
-          onLoadedMetadata={() => {
-            if (isThuyetMinh) syncAudioWithVideo();
-          }}
+          autoPlay
+          onPlay={() => isThuyetMinh && audioRef.current?.play()}
+          onPause={() => audioRef.current?.pause()}
+          onSeeking={() => isThuyetMinh && audioRef.current && videoRef.current ? (audioRef.current.currentTime = videoRef.current.currentTime) : null}
         />
 
-{/* Cột Action Bar (Nút Tim, Share, Công tắc TM/SUB) */}
-      <div className="absolute right-4 bottom-32 flex flex-col gap-6 items-center z-10">
-        
-        {/* NÚT 1: THẢ TIM */}
-        <button className="flex flex-col items-center group">
-          <div className="p-3 bg-gray-800/60 rounded-full text-white text-2xl group-hover:scale-110 transition-transform">❤️</div>
-          <span className="text-white text-xs mt-1 font-bold drop-shadow">67k</span>
-        </button>
+        <audio ref={audioRef} src={phim.audioSrc} preload="auto" className="hidden" />
 
-        {/* NÚT 2: CHIA SẺ */}
+        {/* NÚT QUAY LẠI MŨI TÊN THANH LỊCH (TỰ ẨN) */}
         <button 
-          onClick={handleShare}
-          className="flex flex-col items-center group relative"
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className={`absolute top-4 left-4 z-50 p-2 bg-black/30 rounded-full text-white hover:bg-black/60 transition-all duration-500 backdrop-blur-sm ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         >
-          <div className="p-3 bg-gray-800/60 rounded-full text-white text-xl group-hover:bg-blue-600 transition-colors shadow-lg">
-            🔗
-          </div>
-          <span className="text-white text-[11px] mt-1 font-bold drop-shadow">Chia sẻ</span>
-          
-          {/* Thông báo pop-up "Đã chép!" */}
-          {isCopied && (
-            <span className="absolute -left-20 top-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-lg animate-bounce">
-              Đã chép!
-            </span>
-          )}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
 
-      {/* NÚT 3: CÔNG TẮC TM/SUB (CẢI TIẾN VOLUME & AUTO-SEEK) */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            const status = !isThuyetMinh;
-            
-            // 1. Cập nhật trạng thái
-            setIsThuyetMinh(status);
+        {/* CỘT CHỨC NĂNG NHỎ GỌN (TỰ ẨN) */}
+        <div className={`absolute right-3 bottom-24 flex flex-col gap-4 items-center z-50 transition-all duration-500 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+          <button className="flex flex-col items-center group">
+            <div className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white text-lg shadow-lg border border-white/20">❤️</div>
+            <span className="text-white text-[10px] mt-1 font-medium drop-shadow">67k</span>
+          </button>
 
-            // 2. Ép trình duyệt "nhận diện" lại luồng âm thanh
-            if (status && videoRef.current && audioRef.current) {
-              videoRef.current.volume = 0.3; // Nhạc gốc nhỏ xuống 30%
-              audioRef.current.volume = 1.0; // Thuyết minh to rõ 100%
-              
-              // Tự động nhích nhẹ 0.01 giây để kích hoạt tiếng
-              videoRef.current.currentTime += 0.01;
-              syncAudioWithVideo();
-            } else if (videoRef.current) {
-              videoRef.current.volume = 1.0; // Về bình thường
-              audioRef.current?.pause();
-            }
-          }}
-          className="flex flex-col items-center group"
-        >
-          <div className={`p-3 rounded-full border-2 transition-all duration-300 ${isThuyetMinh ? "border-yellow-500 bg-yellow-500/20 shadow-[0_0_15px_rgba(234,179,8,0.6)]" : "border-white bg-gray-800/60"}`}>
-            <span className="text-[13px] font-bold text-white uppercase leading-none">
-              {isThuyetMinh ? "TM" : "SUB"}
-            </span>
-          </div>
-          <span className="text-white text-xs mt-1 font-bold drop-shadow">Chế độ</span>
-        </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(window.location.href);
+              setIsCopied(true);
+              setTimeout(() => setIsCopied(false), 2000);
+            }}
+            className="flex flex-col items-center group relative"
+          >
+            <div className="p-2 bg-black/40 backdrop-blur-sm rounded-full text-white text-lg group-hover:bg-blue-600 transition-colors shadow-lg border border-white/20">🔗</div>
+            <span className="text-white text-[10px] mt-1 font-medium drop-shadow">Chia sẻ</span>
+            {isCopied && <span className="absolute -left-16 top-1 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded">Đã chép</span>}
+          </button>
 
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const status = !isThuyetMinh;
+              setIsThuyetMinh(status);
+              if (status && videoRef.current) {
+                videoRef.current.currentTime += 0.01; 
+                setTimeout(() => syncAudioWithVideo(), 100);
+              }
+            }}
+            className="flex flex-col items-center group"
+          >
+            <div className={`p-2 rounded-full border transition-all duration-300 backdrop-blur-sm shadow-lg ${isThuyetMinh ? "border-yellow-500 bg-yellow-500/30" : "border-white/30 bg-black/40"}`}>
+              <span className="text-[10px] font-bold text-white uppercase leading-none">
+                {isThuyetMinh ? "TM" : "SUB"}
+              </span>
+            </div>
+            <span className="text-white text-[10px] mt-1 font-medium drop-shadow">Chế độ</span>
+          </button>
+        </div>
       </div>
+
+      {/* ================= KHU VỰC BÌNH LUẬN FACEBOOK THẬT ================= */}
+      <div className="w-full bg-white p-4 min-h-[50vh]">
+        <h3 className="text-black font-bold text-lg mb-2 border-b-2 border-blue-500 inline-block pb-1">💬 Đánh giá & Bình luận</h3>
+        <p className="text-xs text-gray-500 mb-4">Sử dụng tài khoản Facebook của bạn để thảo luận về bộ phim này nhé!</p>
+        <div 
+          className="fb-comments w-full" 
+          data-href={`https://sapnhazhaodi.vercel.app/phim/${phim.id}`} 
+          data-width="100%" 
+          data-numposts="5"
+          data-colorscheme="light"
+        ></div>
+      </div>
+
     </div>
   );
 }
