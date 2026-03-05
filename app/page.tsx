@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+
 
 // ==========================================
 // 1. KHO DỮ LIỆU CỦA TIÊN SINH
@@ -31,6 +32,12 @@ function PhongChieu({ phim, onClose }: { phim: any; onClose: () => void }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isThuyetMinh, setIsThuyetMinh] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const handleShare = (e: any) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(window.location.href); // Lấy link web
+    setIsCopied(true); // Hiện chữ "Đã chép"
+    setTimeout(() => setIsCopied(false), 2000); // Tự ẩn chữ sau 2 giây
+  };
 
   // HÀM ĐỒNG BỘ: TỰ ĐỘNG NHÍCH 0.01s ĐỂ CÓ TIẾNG (THAY CHO VIỆC KÉO THANH BAR)
   const syncAudioWithVideo = () => {
