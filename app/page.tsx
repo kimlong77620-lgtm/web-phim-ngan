@@ -11,16 +11,16 @@ const danhSachPhim = [
     id: 1,
     title: "Sau Khi Ẩn Hôn Với Thương Tổng, Hình Tượng Lạnh Lùng Của Anh Ấy Sụp Đổ - Bản Full",
     thumb: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/thumbnail_94d3bddb.jpg",
-    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/f3a3fd9d-b2bd-4399-a361-6f62ae8ae470/playlist.m3u8",
-    theLoai: ["Ngôn Tình", "Vả Mặt"],
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/7e8dbf83-e9d7-4b26-812f-9723d066a3a6/playlist.m3u8",
+    theLoai: ["Ngôn Tình", "hoán đổi"],
     dienVien: ["Triệu Lộ Tư"]
   },
   {
     id: 2,
     title: "Trọng Sinh Vả Mặt Tổng Tài - Bản Full",
-    thumb: "https://via.placeholder.com/300x450/1f2937/fbbf24?text=Poster+Phim+2",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/2c7d772d-92ec-4df8-a0cf-a76c7ed88b43/thumbnail_3471e54b.jpg",
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/2c7d772d-92ec-4df8-a0cf-a76c7ed88b43/playlist.m3u8",
-    theLoai: ["Trọng Sinh", "Hệ Thống"],
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
   },
   // Thêm phim mới thì copy khối ở trên dán xuống đây, ID tự tăng (3, 4, 5...). Phim ID lớn nhất sẽ tự nổi lên đầu!
