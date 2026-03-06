@@ -46,8 +46,7 @@ const danhSachPhim = [
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/9f4d0e7a-d3cb-4085-bc9f-53d7a91d2129/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
-  },
-  // Thêm phim mới thì copy khối ở trên dán xuống đây, ID tự tăng (3, 4, 5...). Phim ID lớn nhất sẽ tự nổi lên đầu!
+  }
 ];
 
 // ==========================================
@@ -68,6 +67,11 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
   const [showUI, setShowUI] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  
+  const [qualities, setQualities] = useState<any[]>([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const resetTimer = useCallback(() => {
@@ -76,6 +80,7 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
     timerRef.current = setTimeout(() => {
       setShowUI(false);
       setShowVolumeSlider(false);
+      setShowQualityMenu(false);
     }, 3500);
   }, []);
 
@@ -91,6 +96,16 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
     if (Hls.isSupported()) {
       const hls = new Hls();
       hlsRef.current = hls;
+
+      hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+        const availableQualities = data.levels.map((level: any, index: number) => ({
+          height: level.height,
+          index: index
+        }));
+        availableQualities.sort((a, b) => b.height - a.height);
+        setQualities(availableQualities);
+      });
+
       hls.loadSource(phim.videoSrc);
       hls.attachMedia(video);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -159,7 +174,6 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
     if (videoRef.current) videoRef.current.playbackRate = nextSpeed;
   };
 
-  // SỬA LỖI COPY TẠI ĐÂY: Dùng chuẩn async/await kết hợp fallback để chắc chắn copy được 100%
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     resetTimer();
@@ -227,12 +241,59 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
             {playbackRate}x
           </button>
 
+          {qualities.length > 1 && (
+            <div className="relative flex items-center justify-center">
+              {showQualityMenu && (
+                <div className="absolute right-full mr-2 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md shadow-lg z-50 min-w-[70px]">
+                  <button
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      if(hlsRef.current) hlsRef.current.currentLevel = -1;
+                      setCurrentQuality(-1); 
+                      setShowQualityMenu(false); 
+                      resetTimer(); 
+                    }}
+                    className={`text-xs font-bold py-1.5 px-2 rounded transition-colors ${currentQuality === -1 ? 'bg-yellow-500 text-black' : 'text-white hover:bg-white/20'}`}
+                  >
+                    Auto
+                  </button>
+                  {qualities.map((q) => (
+                    <button
+                      key={q.index}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if(hlsRef.current) hlsRef.current.currentLevel = q.index;
+                        setCurrentQuality(q.index); 
+                        setShowQualityMenu(false); 
+                        resetTimer(); 
+                      }}
+                      className={`text-xs font-bold py-1.5 px-2 rounded transition-colors ${currentQuality === q.index ? 'bg-yellow-500 text-black' : 'text-white hover:bg-white/20'}`}
+                    >
+                      {q.height}p
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              <button
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  setShowQualityMenu(!showQualityMenu); 
+                  setShowVolumeSlider(false);
+                  resetTimer(); 
+                }}
+                className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg font-bold text-[10px]"
+              >
+                {currentQuality === -1 ? 'AUTO' : `${qualities.find(q => q.index === currentQuality)?.height}p`}
+              </button>
+            </div>
+          )}
+
           <button onClick={handleToggleAudio} className={`p-2.5 rounded-full border transition-all duration-300 backdrop-blur-md shadow-lg ${isThuyetMinh ? "border-yellow-500 bg-yellow-500/30 text-yellow-400" : "border-white/30 bg-black/50 text-white"}`}>
             <span className="text-[10px] font-extrabold uppercase leading-none block w-6 text-center">{isThuyetMinh ? "TM" : "SUB"}</span>
           </button>
 
           <div className="relative flex items-center justify-center">
-            {/* SỬA LỖI ÂM LƯỢNG TẠI ĐÂY: Thêm touch-none, onTouchMove chống cuộn, đổi sang onInput */}
             {showVolumeSlider && (
               <div 
                 className="absolute right-full mr-2 transition-all duration-300 w-28 bg-black/60 p-3 rounded-full flex items-center backdrop-blur-md shadow-lg z-50"
@@ -267,6 +328,7 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
                 e.stopPropagation(); 
                 resetTimer();
                 setShowVolumeSlider(!showVolumeSlider);
+                setShowQualityMenu(false);
               }} 
               onDoubleClick={(e) => {
                 e.stopPropagation();
