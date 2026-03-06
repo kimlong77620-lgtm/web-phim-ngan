@@ -70,6 +70,14 @@ const danhSachPhim = [
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/105a17c8-f152-447a-bef8-dff3717bd720/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
+  },
+  {
+    id: 9,
+    title: "Đông Cung tiêu điểm: Hoàn khố hoàng tử quỳ gối bái phục - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/05a621f9-f1db-4244-840a-2aa55d7fa0ae/thumbnail_3bb94e4a.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/05a621f9-f1db-4244-840a-2aa55d7fa0ae/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
   }
 ];
 
@@ -467,8 +475,8 @@ export default function Home() {
   const [tuKhoa, setTuKhoa] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   
-  const danhMuc = ["Tất cả", "Hệ Thống", "Trọng Sinh", "Vả Mặt", "Cổ Trang", "Ngôn Tình"];
-  const dienVien = ["Triệu Lộ Tư", "Vương Hạc Đệ", "Bạch Lộc", "Ngu Thư Hân", "Trương Lăng Hách"]; 
+  const danhMuc = ["Tất cả", "Hệ Thống", "Trọng Sinh", "Xuyên Sách", "Cổ Trang", "Ngôn Tình"];
+  const dienVien = ["Lưu Niệm", "Hà Thông Duệ", "Trương Sí", "Mạnh Na", "Vương Tiểu Ức"]; 
   
   const menuRef = useRef<HTMLDivElement>(null);
 
