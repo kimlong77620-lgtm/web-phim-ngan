@@ -46,6 +46,30 @@ const danhSachPhim = [
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/9f4d0e7a-d3cb-4085-bc9f-53d7a91d2129/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
+  },
+  {
+    id: 6,
+    title: "Mẹ Chồng Thôn Bá Xông Vào Kinh Thành, Được Con Dâu Công Chúa Sủng Tận Trời - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/fbb5847d-4c3a-4fa4-8d22-2e7dfc6aee04/thumbnail_f10c4c25.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/fbb5847d-4c3a-4fa4-8d22-2e7dfc6aee04/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
+  {
+    id: 7,
+    title: "Biện Từ Và Nhịp Đập - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/f975d824-60db-4e1c-be9a-a8dbb36fd2ed/thumbnail_a9971f3c.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/f975d824-60db-4e1c-be9a-a8dbb36fd2ed/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
+  {
+    id: 8,
+    title: "Đích Trưởng Nữ Địa Phủ Chớ Dại Trêu Chọc, Nàng Tróc Quỷ Vô Cùng Hung Hãn - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/105a17c8-f152-447a-bef8-dff3717bd720/thumbnail_a4711077.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/105a17c8-f152-447a-bef8-dff3717bd720/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
   }
 ];
 
