@@ -87,6 +87,14 @@ const danhSachPhim = [
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
   },
+  {
+    id: 11,
+    title: "Tỷ Tỷ Là Nữ Tử Xuyên Không Rời Kinh Phản Đạo, Ta Cũng Vậy - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/feb14b24-1139-4c42-9aae-d62f8f4101f5/thumbnail_32b7d177.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/feb14b24-1139-4c42-9aae-d62f8f4101f5/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
 ];
 
 // ==========================================
