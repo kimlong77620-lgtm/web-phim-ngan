@@ -78,7 +78,15 @@ const danhSachPhim = [
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/05a621f9-f1db-4244-840a-2aa55d7fa0ae/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
-  }
+  },
+  {
+    id: 10,
+    title: "Hành Trình Thăng Tiến Của Quý Nữ Giả - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/a46b8a9d-2489-4190-a171-1c4c8a44705a/thumbnail_60fedd10.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/a46b8a9d-2489-4190-a171-1c4c8a44705a/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
 ];
 
 // ==========================================
