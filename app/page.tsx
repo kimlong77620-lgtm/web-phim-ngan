@@ -74,7 +74,7 @@ const danhSachPhim = [
   {
     id: 9,
     title: "Đông Cung tiêu điểm: Hoàn khố hoàng tử quỳ gối bái phục - Bản Full",
-    thumb: "https://vz-f76c4946-df1.b-cdn.net/05a621f9-f1db-4244-840a-2aa55d7fa0ae/thumbnail_3bb94e4a.jpg",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/05a621f9-f1db-4244-840a-2aa55d7fa0ae/thumbnail_caa1d9d6.jpg",
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/05a621f9-f1db-4244-840a-2aa55d7fa0ae/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
