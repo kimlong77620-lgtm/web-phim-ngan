@@ -103,6 +103,14 @@ const danhSachPhim = [
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
   },
+  {
+    id: 13,
+    title: "Thí Vân Đài - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/4b37ea00-d448-4eaa-8618-5b3feba737b6/thumbnail_f45dd871.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/4b37ea00-d448-4eaa-8618-5b3feba737b6/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
 ];
 
 // ==========================================
