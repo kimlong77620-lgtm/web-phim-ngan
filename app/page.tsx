@@ -111,6 +111,14 @@ const danhSachPhim = [
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
   },
+  {
+    id: 14,
+    title: "Bệ Hạ Hôm Nay Đã Lộ Diện Chưa? - Bản Full",
+    thumb: "hhttps://vz-f76c4946-df1.b-cdn.net/9e5ae526-de4b-4e35-8aa6-e1fc2039ee6a/thumbnail_6f28a840.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/9e5ae526-de4b-4e35-8aa6-e1fc2039ee6a/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
 ];
 
 // ==========================================
