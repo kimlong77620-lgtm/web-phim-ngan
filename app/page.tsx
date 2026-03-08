@@ -95,6 +95,14 @@ const danhSachPhim = [
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
   },
+  {
+    id: 12,
+    title: "Gàooo! Mami Người Sói Tới Rồi Đây - Bản Full",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/a1e93e68-7b31-4780-a00b-e4721bceedaf/thumbnail_7fb68a1c.jpg",
+    videoSrc: "https://vz-f76c4946-df1.b-cdn.net/a1e93e68-7b31-4780-a00b-e4721bceedaf/playlist.m3u8",
+    theLoai: ["Xuyên Sách", "Hệ Thống"],
+    dienVien: ["Vương Hạc Đệ"]
+  },
 ];
 
 // ==========================================
