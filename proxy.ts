@@ -1,12 +1,18 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export default clerkMiddleware();
+// 💡 Cấp thẻ luồng xanh cho cổng Webhook
+const isPublicRoute = createRouteMatcher([
+  '/api/webhook(.*)' 
+]);
+
+// ⚠️ Đã thêm chữ "async" ở đây
+export default clerkMiddleware(async (auth, req) => {
+  // Những ai KHÔNG đi luồng xanh thì mới bị chặn lại hỏi giấy tờ
+  if (!isPublicRoute(req)) {
+    await auth.protect(); // ⚠️ Cú pháp mới của Clerk
+  }
+});
 
 export const config = {
-  matcher: [
-    // Bỏ qua các file tĩnh (ảnh, css, js...)
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Luôn chạy cho các API routes
-    '/(api|trpc)(.*)',
-  ],
+  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
 };
