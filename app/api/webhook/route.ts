@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         const { error } = await supabase
           .from('profiles') 
           .update({ is_vip: true }) 
-          .eq('fanId', fanId);
+          .eq('fan_id', fanId);
 
         if (error) throw error;
 
