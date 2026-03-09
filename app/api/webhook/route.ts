@@ -38,8 +38,9 @@ export async function POST(request: Request) {
         const fanId = String(description).replace("ZHAODI ", "").trim();
         console.log(`💰 [WEBHOOK] Chuẩn bị lên VIP cho khách: ${fanId}`);
 
+         // 💡 ĐÃ SỬA THÀNH 'profiles' CHUẨN XÁC 100%
         const { error } = await supabase
-          .from('users') // ⚠️ Lão bản nhớ kiểm tra lại tên bảng là 'users' nhé
+          .from('profiles') 
           .update({ is_vip: true }) 
           .eq('fanId', fanId);
 
