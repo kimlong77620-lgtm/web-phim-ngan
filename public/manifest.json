@@ -1,0 +1,16 @@
+{
+  "name": "Xem Phim Không Cần Não",
+  "short_name": "Phim No Não",
+  "description": "Sạp phim độc quyền của xiaopan0396",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#eab308",
+  "icons": [
+    {
+      "src": "/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

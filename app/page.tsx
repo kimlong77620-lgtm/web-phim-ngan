@@ -1,12 +1,22 @@
 "use client";
-import { SignInButton, Show, UserButton, useUser } from "@clerk/nextjs";
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Hls from "hls.js";
 import { supabase } from "./supabase";
+
 // ==========================================
-// 1. KHO DỮ LIỆU CỦA TIÊN SINH
+// 1. KHO DỮ LIỆU & KIỂU DỮ LIỆU (TYPESCRIPT)
 // ==========================================
-const danhSachPhim = [
+interface Phim {
+  id: number;
+  title: string;
+  thumb: string;
+  videoSrc: string;
+  theLoai: string[];
+  dienVien: string[];
+}
+
+const danhSachPhim: Phim[] = [
   {
     id: 1,
     title: "Sau Khi Ẩn Hôn Với Thương Tổng, Hình Tượng Lạnh Lùng Của Anh Ấy Sụp Đổ - Bản Full",
@@ -106,7 +116,7 @@ const danhSachPhim = [
   {
     id: 13,
     title: "Thí Vân Đài - Bản Full",
-    thumb: "https://vz-f76c4946-df1.b-cdn.net/4b37ea00-d448-4eaa-8618-5b3feba737b6/thumbnail_f45dd871.jpg",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/4b37ea00-d448-4eaa-8618-5b3feba737b6/thumbnail_d5620600.jpg",
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/4b37ea00-d448-4eaa-8618-5b3feba737b6/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
@@ -114,7 +124,7 @@ const danhSachPhim = [
   {
     id: 14,
     title: "Bệ Hạ Hôm Nay Đã Lộ Diện Chưa? - Bản Full",
-    thumb: "hhttps://vz-f76c4946-df1.b-cdn.net/9e5ae526-de4b-4e35-8aa6-e1fc2039ee6a/thumbnail_6f28a840.jpg",
+    thumb: "https://vz-f76c4946-df1.b-cdn.net/9e5ae526-de4b-4e35-8aa6-e1fc2039ee6a/thumbnail_6f28a840.jpg",
     videoSrc: "https://vz-f76c4946-df1.b-cdn.net/9e5ae526-de4b-4e35-8aa6-e1fc2039ee6a/playlist.m3u8",
     theLoai: ["Xuyên Sách", "Hệ Thống"],
     dienVien: ["Vương Hạc Đệ"]
@@ -122,11 +132,10 @@ const danhSachPhim = [
 ];
 
 // ==========================================
-// 2. GIAO DIỆN PHÒNG CHIẾU (Vuốt cuộn Hongguo & UI Tối giản)
+// 2. GIAO DIỆN PHÒNG CHIẾU (TỐI ƯU HIỆU NĂNG)
 // ==========================================
 
-// --- COMPONENT CON: Xử lý riêng từng Video ---
-function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: boolean; onClose: () => void }) {
+function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim; isActive: boolean; onClose: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -161,9 +170,20 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [resetTimer]);
 
+  // 🔥 ĐÃ FIX LỖI RÒ RỈ RAM BẰNG CÁCH HỦY HLS KHI !isActive
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    if (!isActive) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      video.removeAttribute('src');
+      video.load();
+      return; 
+    }
 
     if (Hls.isSupported()) {
       const hls = new Hls();
@@ -173,9 +193,25 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
         const availableQualities = data.levels.map((level: any, index: number) => ({
           height: level.height,
           index: index
-        }));
-        availableQualities.sort((a, b) => b.height - a.height);
+        })).sort((a, b) => b.height - a.height);
         setQualities(availableQualities);
+      });
+
+      // Bắt lỗi HLS tự động phục hồi
+      hls.on(Hls.Events.ERROR, function (event, data) {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              break;
+          }
+        }
       });
 
       hls.loadSource(phim.videoSrc);
@@ -185,7 +221,7 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
     }
 
     return () => { if (hlsRef.current) hlsRef.current.destroy(); };
-  }, [phim.videoSrc]);
+  }, [isActive, phim.videoSrc]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -458,7 +494,7 @@ function TrinhPhatVideo({ phim, isActive, onClose }: { phim: any; isActive: bool
 }
 
 // --- COMPONENT CHA: Quản lý danh sách cuộn ---
-function PhongChieu({ phim: initialPhim, onClose }: { phim: any; onClose: () => void }) {
+function PhongChieu({ phim: initialPhim, onClose }: { phim: Phim; onClose: () => void }) {
   const [activeId, setActiveId] = useState(initialPhim.id);
 
   const danhSachPhimHienThi = [...danhSachPhim].sort((a, b) => b.id - a.id);
@@ -512,10 +548,10 @@ function PhongChieu({ phim: initialPhim, onClose }: { phim: any; onClose: () => 
 // ==========================================
 
 export default function Home() {
-  const [phimDangXem, setPhimDangXem] = useState<any>(null);
+  const [phimDangXem, setPhimDangXem] = useState<Phim | null>(null);
   const [tuKhoa, setTuKhoa] = useState("");
   const [showMenu, setShowMenu] = useState(false);
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [isVip, setIsVip] = useState(false);
   const [isExperienceMode, setIsExperienceMode] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
@@ -524,92 +560,61 @@ export default function Home() {
   const [copiedField, setCopiedField] = useState(""); 
 
   const handleCopy = (text: string, field: string) => {
-    navigator.clipboard.writeText(text); // Lệnh chép vào bộ nhớ điện thoại/máy tính
-    setCopiedField(field); // Đánh dấu ô nào vừa được chép
-    setTimeout(() => setCopiedField(""), 2000); // 2 giây sau tự động quay lại nút Copy
+    navigator.clipboard.writeText(text); 
+    setCopiedField(field); 
+    setTimeout(() => setCopiedField(""), 2000); 
   };
-  const handleWatchPhim = (phim: any) => {
-  if (isExperienceMode || isVip) {
-    setPhimDangXem(phim);
-  } else {
-    setShowVipModal(true); // Hiện bảng thông báo Fan nhà Zhaodi
-  }
-};
-  // --- BẮT ĐẦU ĐOẠN CODE ĐI MÚC DỮ LIỆU ---
+
+  const handleWatchPhim = (phim: Phim) => {
+    if (isExperienceMode || isVip) {
+      setPhimDangXem(phim);
+    } else {
+      setShowVipModal(true);
+    }
+  };
+
+  // 🔥 ĐÃ FIX LỖI DUPLICATE & RACE CONDITION (Gộp 2 useEffect thành 1)
   useEffect(() => {
-    async function layHoacTaoMaFan() {
-      // Nếu khách chưa đăng nhập (từ Clerk) thì bỏ qua
+    async function syncUserProfile() {
       if (!user) return; 
 
       // 1. Tìm trong Supabase xem khách này đã có mã 6 số chưa
-      const { data: profile } = await supabase
+      const { data: existingProfile } = await supabase
         .from('profiles')
         .select('fan_id')
         .eq('id', user.id)
         .single();
 
-      if (profile && profile.fan_id) {
-        // Nếu có rồi thì nạp vào biến fanId để hiện lên màn hình
-        setFanId(profile.fan_id);
-      } else {
-        // 2. Nếu khách mới toanh, hệ thống tự quay xổ số tạo 6 số ngẫu nhiên
-        const maMoiTao = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        // Lưu mã mới này vào Database (Dùng upsert để phòng trường hợp khách chưa có dòng profile nào)
-        await supabase
-          .from('profiles')
-          .upsert({ id: user.id, fan_id: maMoiTao }); 
-          
-        // Nạp vào biến fanId
-        setFanId(maMoiTao);
+      // 2. Nếu chưa có, tạo mã 6 số ngẫu nhiên
+      let currentFanId = existingProfile?.fan_id;
+      if (!currentFanId) {
+        currentFanId = Math.floor(100000 + Math.random() * 900000).toString();
       }
+      
+      setFanId(currentFanId); // Nạp ra giao diện
+
+      // 3. Lưu toàn bộ thông tin vào sổ cái 1 lần duy nhất
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.primaryEmailAddress?.emailAddress,
+        full_name: user.fullName,
+        avatar_url: user.imageUrl,
+        fan_id: currentFanId,
+        updated_at: new Date(),
+      }, { onConflict: 'id' });
     }
 
-    layHoacTaoMaFan();
+    syncUserProfile();
   }, [user]); 
-  // --- KẾT THÚC ĐOẠN CODE ĐI MÚC DỮ LIỆU ---
+
   const danhMuc = ["Tất cả", "Hệ Thống", "Trọng Sinh", "Xuyên Sách", "Cổ Trang", "Ngôn Tình"];
-  const dienVien = ["Lưu Niệm", "Hà Thông Duệ", "Trương Sí", "Mạnh Na", "Vương Tiểu Ức"]; 
-  
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-const saveUserToDatabase = async () => {
-  if (!user) return;
-
-  // 1. Kiểm tra xem khách đã có mã Fan ID chưa
-  const { data: existingProfile } = await supabase
-    .from('profiles')
-    .select('fan_id')
-    .eq('id', user.id)
-    .single();
-
-  // 2. Nếu chưa có, tạo mã 6 số ngẫu nhiên
-  let newFanId = existingProfile?.fan_id;
-  if (!newFanId) {
-    newFanId = Math.floor(100000 + Math.random() * 900000).toString();
-  }
-
-  // 3. Lưu vào sổ cái
-  await supabase.from('profiles').upsert({
-    id: user.id,
-    email: user.primaryEmailAddress?.emailAddress,
-    full_name: user.fullName,
-    avatar_url: user.imageUrl,
-    fan_id: newFanId, // Lưu mã số mới vào đây
-    updated_at: new Date(),
-  }, { onConflict: 'id' });
-};
-    saveUserToDatabase();
-  }, [user]);
-  // Tự động kiểm tra xem Admin có mở cửa hay khách có phải VIP không
-  useEffect(() => {
     const checkStatus = async () => {
-      // 1. Kiểm tra công tắc "Mở cửa trải nghiệm" từ bảng settings
       const { data: settings } = await supabase.from('settings').select('is_experience_mode').single();
       if (settings) setIsExperienceMode(settings.is_experience_mode);
 
-      // 2. Kiểm tra xem khách hiện tại có phải VIP không
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('is_vip').eq('id', user.id).single();
         if (profile) setIsVip(profile.is_vip);
@@ -617,6 +622,7 @@ const saveUserToDatabase = async () => {
     };
     checkStatus();
   }, [user]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('phimId');
@@ -646,18 +652,94 @@ const saveUserToDatabase = async () => {
       return titleMatch || theLoaiMatch || dienVienMatch;
     })
     .sort((a, b) => b.id - a.id);
+    
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center gap-6">
+        <div className="relative w-24 h-24">
+          <div className="absolute inset-0 rounded-full border-t-4 border-yellow-500 animate-spin"></div>
+          <div className="absolute inset-2 rounded-full border-b-4 border-yellow-600 animate-spin-reverse opacity-50"></div>
+          <img src="/logo.jpg" className="absolute inset-4 w-16 h-16 rounded-full object-cover" alt="Loading" />
+        </div>
+        <div className="text-xl text-yellow-500 font-black tracking-widest animate-pulse" style={{ fontFamily: "'Lexend', sans-serif" }}>
+          ĐANG TẢI SẠP PHIM...
+        </div>
+      </div>
+    );
+  }
 
-// --- 1. CHỐT CHẶN BẢO TRÌ ---
-  if (process.env.NEXT_PUBLIC_MAINTENANCE_MODE == "true" || process.env.NEXT_PUBLIC_MAINTENANCE_MODE === true) {
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 text-center overflow-hidden relative">
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@900&display=swap');
+          @keyframes glow-subtle {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(234,179,8,0.3)); }
+            50% { filter: drop-shadow(0 0 35px rgba(234,179,8,0.6)); }
+          }
+        `}</style>
+
+        <div className="relative mb-12 z-10" style={{ animation: 'glow-subtle 3s infinite' }}>
+          <div className="w-40 h-40 mx-auto rounded-full border-4 border-yellow-500 overflow-hidden shadow-2xl">
+            <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+          </div>
+        </div>
+
+        <h1 
+          className="text-5xl md:text-7xl leading-[1.1] mb-8 font-[900] text-yellow-500 uppercase italic"
+          style={{ fontFamily: "'Lexend', sans-serif", textShadow: "0 0 10px rgba(234,179,8,0.5)" }}
+        >
+          Xem Phim<br />Không Cần Não
+        </h1>
+
+        <div className="w-full max-w-sm space-y-6 z-10">
+          <SignInButton mode="modal">
+            <button 
+              className="w-full rounded-2xl bg-yellow-500 py-5 hover:bg-yellow-400 active:scale-95 transition-all shadow-lg"
+              style={{ fontFamily: "'Lexend', sans-serif" }}
+            >
+              <span className="text-2xl font-[900] text-black uppercase tracking-tight">
+                🚀 Đăng nhập ngay
+              </span>
+            </button>
+          </SignInButton>
+
+          <div className="flex items-center justify-center gap-3 text-gray-400 select-none">
+            <input 
+              type="checkbox" 
+              id="remember" 
+              defaultChecked 
+              className="w-5 h-5 accent-yellow-500 bg-gray-800 border-gray-700 rounded cursor-pointer" 
+            />
+            <label 
+              htmlFor="remember" 
+              className="text-sm font-bold cursor-pointer hover:text-yellow-500 transition-colors"
+              style={{ fontFamily: "'Lexend', sans-serif" }}
+            >
+              Ghi nhớ đăng nhập
+            </label>
+          </div>
+        </div>
+
+        <p className="mt-20 text-gray-600 text-[10px] font-black tracking-[0.3em] uppercase opacity-40">
+          — Độc quyền tại xiaopan0396 —
+        </p>
+      </div>
+    );
+  }
+
+  if (process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true") {
     return (
       <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center justify-center p-6 text-center">
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@900&display=swap');`}</style>
         <div className="relative mb-6">
           <img src="/logo.jpg" alt="Logo" className="w-40 h-40 rounded-full border-4 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)] object-cover" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-black text-yellow-500 mb-4 uppercase italic" style={{ fontFamily: 'system-ui, sans-serif' }}>
+        <h1 className="text-4xl md:text-5xl font-black text-yellow-500 mb-4 uppercase italic tracking-tighter leading-tight" 
+            style={{ fontFamily: "'Lexend', sans-serif" }}>
           Xem Phim <br/> Không Cần Não
         </h1>
-        <p className="text-gray-400 max-w-sm leading-relaxed italic">
+        <p className="text-gray-400 max-w-sm leading-relaxed italic" style={{ fontFamily: "'Lexend', sans-serif", fontWeight: 400 }}>
           Lão bản đang "đại tu" lại sạp phim để phục vụ cả nhà tốt hơn. <br/> 
           Hẹn gặp lại quý khách với diện mạo mới cùng <b>xiaopan0396</b> nhé!
         </p>
@@ -668,30 +750,38 @@ const saveUserToDatabase = async () => {
     );
   }
 
-  // --- 2. GIAO DIỆN KHI ĐANG XEM PHIM ---
   if (phimDangXem) {
     return <PhongChieu phim={phimDangXem} onClose={() => setPhimDangXem(null)} />;
   }
 
-  // --- 3. GIAO DIỆN CHÍNH ---
   return (
-    <main className="min-h-screen bg-[#0b0f19] text-white p-4 pb-20">
+    <main className="min-h-screen bg-[#0b0f19] text-white p-4 pb-20 relative">
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@900&display=swap');`}</style>
+      
       <header className="sticky top-0 z-40 bg-[#0b0f19] pt-4 pb-4 px-4 border-b border-gray-800 shadow-md">
         <div className="max-w-4xl mx-auto flex justify-between items-center mb-4">
-          <h1 className="text-2xl md:text-3xl font-black text-yellow-500 uppercase tracking-tight" style={{ fontFamily: 'system-ui, sans-serif' }}>
-            Xem Phim <br className="md:hidden" /> Không Cần Não
-          </h1>
-          <div className="flex items-center gap-4">
-            <Show when="signed-out">
+          <div className="flex items-center gap-3">
+            <img 
+              src="/logo.jpg" 
+              alt="Logo" 
+              className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-yellow-500 object-cover shadow-lg"
+            />
+            <h1 className="text-xl md:text-2xl font-black text-yellow-500 uppercase tracking-tighter leading-tight" 
+                style={{ fontFamily: "'Lexend', sans-serif" }}>
+              Xem Phim <br/> Không Cần Não
+            </h1>
+          </div>
+
+       <div className="flex items-center gap-4">
+            {!user ? (
               <SignInButton mode="modal">
-                <button className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 px-4 rounded-full text-sm flex items-center gap-2">
+                <button className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 px-4 rounded-full text-sm flex items-center gap-2 transition-all">
                   <span>👤</span> <span className="hidden md:inline">Đăng nhập</span>
                 </button>
               </SignInButton>
-            </Show>
-            <Show when="signed-in">
+            ) : (
               <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10 border-2 border-yellow-500" } }} />
-            </Show>
+            )}
           </div>
         </div>
 
@@ -738,11 +828,12 @@ const saveUserToDatabase = async () => {
 
       {showVipModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 backdrop-blur-md">
-          <div className="bg-[#1a1f2e] p-8 rounded-3xl max-w-sm w-full text-center border-2 border-yellow-500 shadow-2xl relative">
-            <button onClick={() => setShowVipModal(false)} className="absolute top-4 right-5 text-gray-500 hover:text-white text-xl">✕</button>
-            <h2 className="text-3xl font-bold text-yellow-500 mb-2 uppercase italic shadow-[0_0_10px_rgba(234,179,8,0.5)]">Xem Phim <br/> Không Cần Não</h2>
+          <div className="bg-[#1a1f2e] p-8 rounded-3xl max-w-sm w-full text-center border-2 border-yellow-500 shadow-2xl relative overflow-hidden">
+            <button onClick={() => setShowVipModal(false)} className="absolute top-4 right-5 text-gray-500 hover:text-white text-xl z-10">✕</button>
+            <h2 className="text-3xl font-bold text-yellow-500 mb-2 uppercase italic shadow-[0_0_10px_rgba(234,179,8,0.5)] relative z-10">Xem Phim <br/> Không Cần Não</h2>
+            
             {paymentStep === 1 ? (
-              <div className="text-left space-y-4 animate-in slide-in-from-right-4 duration-300">
+              <div className="text-left space-y-4 animate-in slide-in-from-right-4 duration-300 relative z-10">
                 <p className="text-gray-200 text-xs leading-relaxed italic">Cả nhà thân mến, để duy trì nền tảng mượt mà ad xin gửi cả nhà gói xem phim không giới hạn ạ.</p>
                 <div className="bg-yellow-500/10 p-4 rounded-2xl border border-yellow-500/20 text-center">
                   <p className="text-yellow-500 font-bold text-xl uppercase">45.000đ / NĂM</p>
@@ -751,39 +842,96 @@ const saveUserToDatabase = async () => {
                   <p>• <b>Chủ TK:</b> <span className="text-white uppercase">PHAN THI THU THAO</span></p>
                   <p>• <b>Nội dung:</b> <span className="text-yellow-400 font-mono font-bold text-base uppercase">DONATE_{fanId}</span></p>
                 </div>
-                <button onClick={() => setPaymentStep(2)} className="w-full py-4 bg-yellow-600 text-black font-bold rounded-2xl hover:bg-yellow-500 uppercase">Tiếp tục thanh toán</button>
-                <a href="https://m.me/61585837924317" target="_blank" className="w-full py-3 bg-[#0084FF] text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-sm">Hỗ trợ ngay (Messenger)</a>
+                
+                <button onClick={() => setPaymentStep(2)} className="w-full py-4 bg-yellow-600 text-black font-bold rounded-2xl hover:bg-yellow-500 uppercase shadow-lg shadow-yellow-500/20 transition-transform active:scale-95" style={{ fontFamily: "'Lexend', sans-serif" }}>
+                  Tiếp tục thanh toán
+                </button>
+                
+                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                  <p className="text-gray-400 text-[10px] text-center mb-3 uppercase tracking-widest font-bold">Cần lão bản hỗ trợ?</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <a href="https://m.me/61585837924317" target="_blank" className="py-3 bg-[#0084FF] text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-[11px] hover:bg-[#0073e6] transition-all shadow-md">
+                      <svg viewBox="0 0 36 36" fill="currentColor" height="18" width="18"><path d="M18 2C9.163 2 2 8.791 2 17.168c0 4.757 2.41 8.995 6.136 11.838V34l5.6-3.083c1.373.385 2.833.593 4.356.593 8.837 0 16-6.791 16-15.168C34 8.791 26.837 2 18 2zm1.096 20.32-3.411-3.64-6.641 3.64 7.288-7.75 3.504 3.64 6.55-3.64-7.29 7.75z"></path></svg>
+                      Messenger
+                    </a>
+                    <a href="https://zalo.me/0386027105" target="_blank" className="py-3 bg-[#0068ff] text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-[11px] hover:bg-[#0058d9] transition-all shadow-md border border-white/10">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21.037 8.049c-1.433-3.95-5.917-6.07-10.086-4.717-3.606 1.173-6.19 4.604-6.035 8.361.066 1.956.88 3.75 2.26 5.1L5.7 21.011l4.41-1.574c1.138.356 2.348.536 3.565.536 5.378 0 9.736-4.357 9.736-9.735 0-1.638-.568-2.983-1.41-4.348h-1.065h.09v1.175zm-8.875 5.253H9.422v-3.784c1.71 0 2.225-.047 2.225-1.04v-.09h-3.385v-.873h3.495c.86 0 1.31.396 1.31 1.127v.18c0 .888-.64 1.164-1.503 1.164H9.99v1.92h2.172v1.464zm3.805-1.465h-1.947V9.524h1.947v2.313zm-1.947 1.464V12.01h1.947v1.306h-1.947zm4.05-3.784h-1.413V8.212h1.413v1.306zm.395 2.54c0 .676-.462 1.244-1.09 1.244h-1.302v-3.468h1.302c.628 0 1.09.568 1.09 1.244v.98z" fill="#fff"/></svg>
+                      Zalo Admin
+                    </a>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="animate-in slide-in-from-left-4 duration-300 text-center">
+              <div className="animate-in slide-in-from-left-4 duration-300 text-center relative z-10">
                 <div className="bg-white p-2 rounded-2xl inline-block mb-3 shadow-xl">
                   <img src={`https://img.vietqr.io/image/VCB-1042526602-compact2.jpg?amount=45000&addInfo=DONATE%5F${fanId}`} className="w-40 h-40" alt="QR" />
                 </div>
                 <div className="bg-black/30 p-4 rounded-xl text-left text-xs text-gray-300 mb-5 border border-yellow-500/20 space-y-3">
+                  
+                  <div className="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                    <span>Ngân hàng:</span>
+                    <span className="text-white font-bold text-sm uppercase">Vietcombank</span>
+                  </div>
+
+                  <div className="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                    <span>Chủ tài khoản:</span>
+                    <span className="text-white font-bold text-sm uppercase">PHAN THI THU THAO</span>
+                  </div>
+
                   <div className="flex justify-between items-center border-b border-gray-700/50 pb-2">
                     <span>Số tài khoản:</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-yellow-400 font-mono font-bold text-sm">1042526602</span>
-                      <button onClick={() => handleCopy("1042526602", "stk")} className="bg-gray-800 p-1 rounded hover:bg-gray-700">{copiedField === "stk" ? "✓" : "📋"}</button>
+                      <button 
+                        onClick={() => handleCopy("1042526602", "stk")} 
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all shadow-md ${copiedField === "stk" ? "bg-green-500 text-white" : "bg-gray-700 text-white hover:bg-yellow-500 hover:text-black"}`}
+                      >
+                        {copiedField === "stk" ? "✓ Đã Chép" : "Copy"}
+                      </button>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center border-b border-gray-700/50 pb-2">
+
+                  <div className="flex justify-between items-center">
                     <span>Nội dung:</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-yellow-400 font-mono font-bold text-sm">DONATE_{fanId}</span>
-                      <button onClick={() => handleCopy(`DONATE_${fanId}`, "noidung")} className="bg-gray-800 p-1 rounded hover:bg-gray-700">{copiedField === "noidung" ? "✓" : "📋"}</button>
+                      <button 
+                        onClick={() => handleCopy(`DONATE_${fanId}`, "noidung")} 
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all shadow-md ${copiedField === "noidung" ? "bg-green-500 text-white" : "bg-gray-700 text-white hover:bg-yellow-500 hover:text-black"}`}
+                      >
+                        {copiedField === "noidung" ? "✓ Đã Chép" : "Copy"}
+                      </button>
                     </div>
                   </div>
                 </div>
+                
                 <div className="flex gap-3">
-                  <button onClick={() => setPaymentStep(1)} className="flex-1 py-3 border border-gray-700 text-gray-400 font-bold rounded-xl text-[11px] uppercase">Quay lại</button>
-                  <button onClick={() => window.location.reload()} className="flex-[2] py-3 bg-yellow-600 text-black font-black rounded-xl uppercase text-xs">Tôi đã chuyển khoản</button>
+                  <button onClick={() => setPaymentStep(1)} className="flex-1 py-3 border border-gray-700 text-gray-400 font-bold rounded-xl text-[11px] uppercase hover:bg-gray-800 transition-colors">Quay lại</button>
+                  <button onClick={() => window.location.reload()} className="flex-[2] py-3 bg-yellow-600 text-black font-black rounded-xl uppercase text-xs hover:bg-yellow-500 shadow-lg transition-transform active:scale-95">Tôi đã chuyển khoản</button>
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
+
+      <div className="fixed bottom-24 right-4 z-[90] flex flex-col gap-3">
+        <a 
+          href="https://zalo.me/09xxxxxxxx" 
+          target="_blank" 
+          className="w-12 h-12 bg-[#0068ff] rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,104,255,0.4)] border-2 border-white hover:scale-110 transition-transform text-white"
+        >
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M21.037 8.049c-1.433-3.95-5.917-6.07-10.086-4.717-3.606 1.173-6.19 4.604-6.035 8.361.066 1.956.88 3.75 2.26 5.1L5.7 21.011l4.41-1.574c1.138.356 2.348.536 3.565.536 5.378 0 9.736-4.357 9.736-9.735 0-1.638-.568-2.983-1.41-4.348h-1.065h.09v1.175zm-8.875 5.253H9.422v-3.784c1.71 0 2.225-.047 2.225-1.04v-.09h-3.385v-.873h3.495c.86 0 1.31.396 1.31 1.127v.18c0 .888-.64 1.164-1.503 1.164H9.99v1.92h2.172v1.464zm3.805-1.465h-1.947V9.524h1.947v2.313zm-1.947 1.464V12.01h1.947v1.306h-1.947zm4.05-3.784h-1.413V8.212h1.413v1.306zm.395 2.54c0 .676-.462 1.244-1.09 1.244h-1.302v-3.468h1.302c.628 0 1.09.568 1.09 1.244v.98z" fill="#fff"/></svg>
+        </a>
+        <a 
+          href="https://m.me/61585837924317" 
+          target="_blank" 
+          className="w-12 h-12 bg-[#0084FF] rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,132,255,0.4)] border-2 border-white hover:scale-110 transition-transform text-white"
+        >
+          <svg viewBox="0 0 36 36" fill="currentColor" height="26" width="26"><path d="M18 2C9.163 2 2 8.791 2 17.168c0 4.757 2.41 8.995 6.136 11.838V34l5.6-3.083c1.373.385 2.833.593 4.356.593 8.837 0 16-6.791 16-15.168C34 8.791 26.837 2 18 2zm1.096 20.32-3.411-3.64-6.641 3.64 7.288-7.75 3.504 3.64 6.55-3.64-7.29 7.75z"></path></svg>
+        </a>
+      </div>
+
     </main>
   );
 }
