@@ -1,8 +1,8 @@
 "use client";
-
+import { SignInButton, Show, UserButton, useUser } from "@clerk/nextjs";
 import { useState, useRef, useEffect, useCallback } from "react";
 import Hls from "hls.js";
-
+import { supabase } from "./supabase";
 // ==========================================
 // 1. KHO DỮ LIỆU CỦA TIÊN SINH
 // ==========================================
@@ -510,16 +510,113 @@ function PhongChieu({ phim: initialPhim, onClose }: { phim: any; onClose: () => 
 // ==========================================
 // 3. TRANG CHỦ MẶC ĐỊNH
 // ==========================================
+
 export default function Home() {
   const [phimDangXem, setPhimDangXem] = useState<any>(null);
   const [tuKhoa, setTuKhoa] = useState("");
   const [showMenu, setShowMenu] = useState(false);
-  
+  const { user } = useUser();
+  const [isVip, setIsVip] = useState(false);
+  const [isExperienceMode, setIsExperienceMode] = useState(false);
+  const [showVipModal, setShowVipModal] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(1);
+  const [fanId, setFanId] = useState("");
+  const [copiedField, setCopiedField] = useState(""); 
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text); // Lệnh chép vào bộ nhớ điện thoại/máy tính
+    setCopiedField(field); // Đánh dấu ô nào vừa được chép
+    setTimeout(() => setCopiedField(""), 2000); // 2 giây sau tự động quay lại nút Copy
+  };
+  const handleWatchPhim = (phim: any) => {
+  if (isExperienceMode || isVip) {
+    setPhimDangXem(phim);
+  } else {
+    setShowVipModal(true); // Hiện bảng thông báo Fan nhà Zhaodi
+  }
+};
+  // --- BẮT ĐẦU ĐOẠN CODE ĐI MÚC DỮ LIỆU ---
+  useEffect(() => {
+    async function layHoacTaoMaFan() {
+      // Nếu khách chưa đăng nhập (từ Clerk) thì bỏ qua
+      if (!user) return; 
+
+      // 1. Tìm trong Supabase xem khách này đã có mã 6 số chưa
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('fan_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profile && profile.fan_id) {
+        // Nếu có rồi thì nạp vào biến fanId để hiện lên màn hình
+        setFanId(profile.fan_id);
+      } else {
+        // 2. Nếu khách mới toanh, hệ thống tự quay xổ số tạo 6 số ngẫu nhiên
+        const maMoiTao = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Lưu mã mới này vào Database (Dùng upsert để phòng trường hợp khách chưa có dòng profile nào)
+        await supabase
+          .from('profiles')
+          .upsert({ id: user.id, fan_id: maMoiTao }); 
+          
+        // Nạp vào biến fanId
+        setFanId(maMoiTao);
+      }
+    }
+
+    layHoacTaoMaFan();
+  }, [user]); 
+  // --- KẾT THÚC ĐOẠN CODE ĐI MÚC DỮ LIỆU ---
   const danhMuc = ["Tất cả", "Hệ Thống", "Trọng Sinh", "Xuyên Sách", "Cổ Trang", "Ngôn Tình"];
   const dienVien = ["Lưu Niệm", "Hà Thông Duệ", "Trương Sí", "Mạnh Na", "Vương Tiểu Ức"]; 
   
   const menuRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+const saveUserToDatabase = async () => {
+  if (!user) return;
+
+  // 1. Kiểm tra xem khách đã có mã Fan ID chưa
+  const { data: existingProfile } = await supabase
+    .from('profiles')
+    .select('fan_id')
+    .eq('id', user.id)
+    .single();
+
+  // 2. Nếu chưa có, tạo mã 6 số ngẫu nhiên
+  let newFanId = existingProfile?.fan_id;
+  if (!newFanId) {
+    newFanId = Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  // 3. Lưu vào sổ cái
+  await supabase.from('profiles').upsert({
+    id: user.id,
+    email: user.primaryEmailAddress?.emailAddress,
+    full_name: user.fullName,
+    avatar_url: user.imageUrl,
+    fan_id: newFanId, // Lưu mã số mới vào đây
+    updated_at: new Date(),
+  }, { onConflict: 'id' });
+};
+    saveUserToDatabase();
+  }, [user]);
+  // Tự động kiểm tra xem Admin có mở cửa hay khách có phải VIP không
+  useEffect(() => {
+    const checkStatus = async () => {
+      // 1. Kiểm tra công tắc "Mở cửa trải nghiệm" từ bảng settings
+      const { data: settings } = await supabase.from('settings').select('is_experience_mode').single();
+      if (settings) setIsExperienceMode(settings.is_experience_mode);
+
+      // 2. Kiểm tra xem khách hiện tại có phải VIP không
+      if (user) {
+        const { data: profile } = await supabase.from('profiles').select('is_vip').eq('id', user.id).single();
+        if (profile) setIsVip(profile.is_vip);
+      }
+    };
+    checkStatus();
+  }, [user]);
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('phimId');
@@ -550,50 +647,70 @@ export default function Home() {
     })
     .sort((a, b) => b.id - a.id);
 
+// --- 1. CHỐT CHẶN BẢO TRÌ ---
+  if (process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true") {
+    return (
+      <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="relative mb-6">
+          <img src="/logo.jpg" alt="Logo" className="w-40 h-40 rounded-full border-4 border-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.3)] object-cover" />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-black text-yellow-500 mb-4 uppercase italic" style={{ fontFamily: 'system-ui, sans-serif' }}>
+          Xem Phim <br/> Không Cần Não
+        </h1>
+        <p className="text-gray-400 max-w-sm leading-relaxed italic">
+          Lão bản đang "đại tu" lại sạp phim để phục vụ cả nhà tốt hơn. <br/> 
+          Hẹn gặp lại quý khách với diện mạo mới cùng <b>xiaopan0396</b> nhé!
+        </p>
+        <div className="mt-10 flex items-center gap-2 text-yellow-600 font-bold animate-pulse">
+          <span>⚙️ Hệ thống đang được nâng cấp...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // --- 2. GIAO DIỆN KHI ĐANG XEM PHIM ---
   if (phimDangXem) {
     return <PhongChieu phim={phimDangXem} onClose={() => setPhimDangXem(null)} />;
   }
 
+  // --- 3. GIAO DIỆN CHÍNH ---
   return (
     <main className="min-h-screen bg-[#0b0f19] text-white p-4 pb-20">
       <header className="sticky top-0 z-40 bg-[#0b0f19] pt-4 pb-4 px-4 border-b border-gray-800 shadow-md">
-        <div className="max-w-4xl mx-auto flex justify-between items-center mb-3">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 tracking-wide">
-            Sạp nhà Zhaodi
+        <div className="max-w-4xl mx-auto flex justify-between items-center mb-4">
+          <h1 className="text-2xl md:text-3xl font-black text-yellow-500 uppercase tracking-tight" style={{ fontFamily: 'system-ui, sans-serif' }}>
+            Xem Phim <br className="md:hidden" /> Không Cần Não
           </h1>
-          <button className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 px-4 rounded-full text-sm transition-all shadow-[0_0_10px_rgba(234,179,8,0.3)] flex items-center gap-2">
-            <span className="text-lg">👤</span> 
-            <span className="hidden md:inline">Đăng nhập</span>
-          </button>
+          <div className="flex items-center gap-4">
+            <Show when="signed-out">
+              <SignInButton mode="modal">
+                <button className="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 px-4 rounded-full text-sm flex items-center gap-2">
+                  <span>👤</span> <span className="hidden md:inline">Đăng nhập</span>
+                </button>
+              </SignInButton>
+            </Show>
+            <Show when="signed-in">
+              <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10 border-2 border-yellow-500" } }} />
+            </Show>
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto flex gap-3 relative z-50">
           <div ref={menuRef} className="relative flex-none">
-            <button 
-              onClick={() => setShowMenu(!showMenu)}
-              className="bg-gray-800 hover:bg-gray-700 text-yellow-500 px-3 py-2 rounded-lg border border-gray-700 flex items-center gap-2 transition-all whitespace-nowrap h-full"
-            >
-              <span className="text-xl leading-none">☰</span>
-              <span className="hidden sm:inline text-sm font-bold text-white">Danh mục</span>
+            <button onClick={() => setShowMenu(!showMenu)} className="bg-gray-800 text-yellow-500 px-3 py-2 rounded-lg border border-gray-700 flex items-center gap-2 h-full">
+              <span>☰</span> <span className="hidden sm:inline text-sm font-bold text-white">Danh mục</span>
             </button>
-
             {showMenu && (
               <div className="absolute top-full left-0 mt-2 w-56 max-h-[70vh] overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg shadow-2xl z-50">
-                <div className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-800/80 sticky top-0">🎬 Thể Loại</div>
+                <div className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase bg-gray-800/80">🎬 Thể Loại</div>
                 {danhMuc.map((item, idx) => (
-                  <button key={`cat-${idx}`} onClick={() => { setTuKhoa(item === "Tất cả" ? "" : item); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-yellow-500 hover:text-black transition-colors">{item}</button>
-                ))}
-                <div className="border-t border-gray-700 my-1"></div>
-                <div className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-800/80 sticky top-0">🎭 Diễn Viên</div>
-                {dienVien.map((actor, idx) => (
-                  <button key={`actor-${idx}`} onClick={() => { setTuKhoa(actor); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-yellow-500 hover:text-black transition-colors">{actor}</button>
+                  <button key={`cat-${idx}`} onClick={() => { setTuKhoa(item === "Tất cả" ? "" : item); setShowMenu(false); }} className="w-full text-left px-4 py-2.5 text-sm text-gray-200 hover:bg-yellow-500 hover:text-black">{item}</button>
                 ))}
               </div>
             )}
           </div>
-
           <div className="relative flex-1">
-            <input type="text" placeholder="🔍 Tìm kiếm phim..." value={tuKhoa} onChange={(e) => setTuKhoa(e.target.value)} className="w-full h-full bg-gray-900 text-white placeholder-gray-500 border border-gray-700 rounded-lg py-2.5 px-4 outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all text-sm shadow-inner" />
+            <input type="text" placeholder="🔍 Tìm kiếm phim..." value={tuKhoa} onChange={(e) => setTuKhoa(e.target.value)} className="w-full h-full bg-gray-900 text-white border border-gray-700 rounded-lg px-4 outline-none focus:border-yellow-500 text-sm" />
           </div>
         </div>
       </header>
@@ -605,20 +722,68 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {phimHienThi.map((phim) => (
-              <div key={phim.id} onClick={() => setPhimDangXem(phim)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500 transition-all shadow-lg">
+              <div key={phim.id} onClick={() => handleWatchPhim(phim)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500">
                 <div className="relative aspect-[2/3] overflow-hidden">
                   <img src={phim.thumb} alt={phim.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">FULL</div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                 </div>
                 <div className="p-3">
-                  <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-yellow-400 transition-colors">{phim.title}</h3>
+                  <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-yellow-400">{phim.title}</h3>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {showVipModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4 backdrop-blur-md">
+          <div className="bg-[#1a1f2e] p-8 rounded-3xl max-w-sm w-full text-center border-2 border-yellow-500 shadow-2xl relative">
+            <button onClick={() => setShowVipModal(false)} className="absolute top-4 right-5 text-gray-500 hover:text-white text-xl">✕</button>
+            <h2 className="text-3xl font-bold text-yellow-500 mb-2 uppercase italic shadow-[0_0_10px_rgba(234,179,8,0.5)]">Xem Phim <br/> Không Cần Não</h2>
+            {paymentStep === 1 ? (
+              <div className="text-left space-y-4 animate-in slide-in-from-right-4 duration-300">
+                <p className="text-gray-200 text-xs leading-relaxed italic">Cả nhà thân mến, để duy trì nền tảng mượt mà ad xin gửi cả nhà gói xem phim không giới hạn ạ.</p>
+                <div className="bg-yellow-500/10 p-4 rounded-2xl border border-yellow-500/20 text-center">
+                  <p className="text-yellow-500 font-bold text-xl uppercase">45.000đ / NĂM</p>
+                </div>
+                <div className="bg-black/20 p-3 rounded-xl text-[12px] text-gray-300">
+                  <p>• <b>Chủ TK:</b> <span className="text-white uppercase">PHAN THI THU THAO</span></p>
+                  <p>• <b>Nội dung:</b> <span className="text-yellow-400 font-mono font-bold text-base uppercase">DONATE_{fanId}</span></p>
+                </div>
+                <button onClick={() => setPaymentStep(2)} className="w-full py-4 bg-yellow-600 text-black font-bold rounded-2xl hover:bg-yellow-500 uppercase">Tiếp tục thanh toán</button>
+                <a href="https://m.me/61585837924317" target="_blank" className="w-full py-3 bg-[#0084FF] text-white font-bold rounded-2xl flex items-center justify-center gap-2 text-sm">Hỗ trợ ngay (Messenger)</a>
+              </div>
+            ) : (
+              <div className="animate-in slide-in-from-left-4 duration-300 text-center">
+                <div className="bg-white p-2 rounded-2xl inline-block mb-3 shadow-xl">
+                  <img src={`https://img.vietqr.io/image/VCB-1042526602-compact2.jpg?amount=45000&addInfo=DONATE%5F${fanId}`} className="w-40 h-40" alt="QR" />
+                </div>
+                <div className="bg-black/30 p-4 rounded-xl text-left text-xs text-gray-300 mb-5 border border-yellow-500/20 space-y-3">
+                  <div className="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                    <span>Số tài khoản:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-400 font-mono font-bold text-sm">1042526602</span>
+                      <button onClick={() => handleCopy("1042526602", "stk")} className="bg-gray-800 p-1 rounded hover:bg-gray-700">{copiedField === "stk" ? "✓" : "📋"}</button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                    <span>Nội dung:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-400 font-mono font-bold text-sm">DONATE_{fanId}</span>
+                      <button onClick={() => handleCopy(`DONATE_${fanId}`, "noidung")} className="bg-gray-800 p-1 rounded hover:bg-gray-700">{copiedField === "noidung" ? "✓" : "📋"}</button>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setPaymentStep(1)} className="flex-1 py-3 border border-gray-700 text-gray-400 font-bold rounded-xl text-[11px] uppercase">Quay lại</button>
+                  <button onClick={() => window.location.reload()} className="flex-[2] py-3 bg-yellow-600 text-black font-black rounded-xl uppercase text-xs">Tôi đã chuyển khoản</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
