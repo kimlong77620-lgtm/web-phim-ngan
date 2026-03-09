@@ -648,7 +648,7 @@ const saveUserToDatabase = async () => {
     .sort((a, b) => b.id - a.id);
 
 // --- 1. CHỐT CHẶN BẢO TRÌ ---
-  if (process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true") {
+  if (process.env.NEXT_PUBLIC_MAINTENANCE_MODE == "true" || process.env.NEXT_PUBLIC_MAINTENANCE_MODE === true) {
     return (
       <div className="min-h-screen bg-[#0b0f19] text-white flex flex-col items-center justify-center p-6 text-center">
         <div className="relative mb-6">
