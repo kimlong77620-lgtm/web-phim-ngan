@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from '@clerk/nextjs';
 import { Inter } from 'next/font/google';
-import "./globals.css"; //
+import "./globals.css";
+import InstallGuide from '@/components/InstallGuide';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,13 +17,13 @@ export const viewport: Viewport = {
 
 // 2. PHÙ HIỆU SẠP PHIM: Metadata và cấu hình PWA để cài App
 export const metadata: Metadata = {
-  title: "Xem Phim Không Cần Não",
+  title: "Sạp Zhaodi",
   description: "Sạp phim dịch độc quyền bởi xiaopan0396",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Phim No Não",
+    title: "Sạp Zhaodi",
   },
 };
 
@@ -46,9 +47,13 @@ export default function RootLayout({
             </div>
           ) : (
             // Giao diện sạp phim chính thức
-            <main className="min-h-screen relative">
-              {children}
-            </main>
+            <>
+              <main className="min-h-screen relative">
+                {children}
+              </main>
+              {/* Linh kiện hướng dẫn fan dùng iPhone cài đặt sạp phim */}
+              <InstallGuide />
+            </>
           )}
         </body>
       </html>

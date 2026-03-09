@@ -1,40 +1,46 @@
-import { createClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { PayOS } from "@payos/node";
+import { createClient } from "@supabase/supabase-js";
 
-// Dùng Service Role Key để có quyền sửa database bảo mật [cite: 2026-03-09]
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! 
+const payos = new PayOS({
+  clientId: process.env.PAYOS_CLIENT_ID || "",
+  apiKey: process.env.PAYOS_API_KEY || "",
+  checksumKey: process.env.PAYOS_CHECKSUM_KEY || ""
+});
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
-export async function POST(req: Request) {
-  const apiKey = req.headers.get('x-api-key');
-  // LỚP VỆ SĨ: Chỉ nghe lệnh nếu đúng mật mã bí mật [cite: 2026-03-09]
-  if (apiKey !== process.env.PAYMENT_WEBHOOK_SECRET) {
-    return NextResponse.json({ message: "Không có quyền truy cập" }, { status: 401 });
-  }
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    
+    // 💡 BẢN CHUẨN KẾT HỢP: Vừa đúng phiên bản mới, vừa có bùa chống lỗi
+const webhookData: any = payos.webhooks.verify(body);
 
-  const body = await req.json();
-  const content = body.content || body.description; // Nội dung CK: DONATE_123456
-  const amount = body.amount; // Số tiền: 45000
-  const transactionId = body.id || body.reference; // Mã GD ngân hàng
+    const description = webhookData.description;
+    const fanId = description.replace("ZHAODI ", "").trim();
 
-  // 1. Tách lấy mã 6 số từ nội dung chuyển khoản [cite: 2026-03-09]
-  const fanIdFromBank = content.split('DONATE_')[1]?.trim();
+    console.log("💰 TIN CHUẨN: Khách", fanId, "vừa thanh toán", webhookData.amount, "đ");
 
-  if (fanIdFromBank && amount >= 45000) {
-    // 2. Kiểm tra xem giao dịch này đã xử lý chưa để chống hack [cite: 2026-03-09]
-    const { data: existingTx } = await supabaseAdmin
-      .from('transactions')
-      .select('id').eq('id', transactionId).single();
+    // 🚀 TỰ ĐỘNG BẬT VIP
+    const { error } = await supabase
+      .from('users') // ⚠️ Lão bản nhớ đảm bảo tên bảng này đúng nhé
+      .update({ is_vip: true }) 
+      .eq('fanId', fanId);
 
-    if (!existingTx) {
-      // 3. Ghi vào sổ giao dịch và kích hoạt VIP [cite: 2026-03-09]
-      await supabaseAdmin.from('transactions').insert({ id: transactionId, fan_id: fanIdFromBank, amount });
-      await supabaseAdmin.from('profiles').update({ is_vip: true }).eq('fan_id', fanIdFromBank);
-      
-      return NextResponse.json({ message: "Đã nạp VIP thành công!" });
+    if (error) {
+      console.error("❌ Cập nhật VIP thất bại:", error);
+      throw error;
     }
+
+    console.log("🎉 ĐÃ TỰ ĐỘNG BẬT VIP CHO FAN:", fanId);
+    return NextResponse.json({ success: true, message: "Đã duyệt VIP" });
+
+  } catch (error: any) {
+    console.error("❌ LỖI TẠI THU NGÂN WEBHOOK:", error.message);
+    return NextResponse.json({ success: false, message: error.message });
   }
-  return NextResponse.json({ message: "Dữ liệu không hợp lệ" }, { status: 400 });
 }

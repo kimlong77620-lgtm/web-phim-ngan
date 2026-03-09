@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.1",
+    "@payos/node": "^2.0.5",
     "@supabase/supabase-js": "^2.98.0",
     "hls.js": "^1.6.15",
     "next": "16.1.6",
