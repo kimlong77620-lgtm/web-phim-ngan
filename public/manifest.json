@@ -1,16 +1,26 @@
 {
   "name": "Xem Phim Không Cần Não",
   "short_name": "Phim No Não",
-  "description": "Sạp phim độc quyền của xiaopan0396",
+  "description": "Sạp phim dịch độc quyền bởi xiaopan0396",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0f19",
   "theme_color": "#eab308",
   "icons": [
     {
-      "src": "/logo.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg"
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ]
 }
