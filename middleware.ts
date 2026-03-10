@@ -4,9 +4,9 @@ export default clerkMiddleware();
 
 export const config = {
   matcher: [
-    // 🎯 Cho phép ảnh, css, js qua cửa thoải mái
+    // 🎯 Cho phép xem ảnh, css, js thoải mái không bị chặn
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // 🎯 Luôn theo dõi các đường dẫn API
+    // 🎯 Luôn kiểm tra quyền truy cập ở các đường dẫn API
     '/(api|trpc)(.*)',
   ],
 };
