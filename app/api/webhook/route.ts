@@ -38,10 +38,21 @@ export async function POST(request: Request) {
         const fanId = String(description).replace("ZHAODI ", "").trim();
         console.log(`💰 [WEBHOOK] Chuẩn bị lên VIP cho khách: ${fanId}`);
 
+        // ---> ĐOẠN CODE TÍNH THỜI GIAN THÊM VÀO Ở ĐÂY <---
+        const expireDate = new Date();
+        expireDate.setFullYear(expireDate.getFullYear() + 1); // Cộng 1 năm
+        expireDate.setDate(expireDate.getDate() + 1); // Cộng thêm 1 ngày cho khách thoải mái
+        const vipExpireString = expireDate.toISOString().split('T')[0]; // Lấy chuẩn YYYY-MM-DD
+        console.log(`⏳ [WEBHOOK] Thời hạn VIP dự kiến set cho khách: ${vipExpireString}`);
+        // ------------------------------------------------
+
          // 💡 ĐÃ SỬA THÀNH 'profiles' CHUẨN XÁC 100%
         const { error } = await supabase
           .from('profiles') 
-          .update({ is_vip: true }) 
+          .update({ 
+            is_vip: true,
+            vip_expire_at: vipExpireString // Bơm thời gian hạn sử dụng vào Supabase!
+          }) 
           .eq('fan_id', fanId);
 
         if (error) throw error;
