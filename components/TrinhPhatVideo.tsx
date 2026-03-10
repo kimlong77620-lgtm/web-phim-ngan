@@ -2,281 +2,293 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Hls from "hls.js";
-import { supabase } from "@/lib/supabase"; 
+import { supabase } from "@/lib/supabase"; 
 import { useUser } from "@clerk/nextjs";
 
 export interface Phim {
-  id: number;
-  title: string;
-  thumb: string;
-  videoSrc?: string;
-  video_src?: string;
-  views_count?: number;
-  likes_count?: number;
+  id: number;
+  title: string;
+  thumb: string;
+  videoSrc?: string;
+  video_src?: string;
+  views_count?: number;
+  likes_count?: number;
 }
 
-export default function TrinhPhatVideo({ phim, isActive, onClose }: { 
-  phim: Phim; 
-  isActive: boolean; 
-  onClose: () => void 
+export default function TrinhPhatVideo({ phim, isActive, onClose }: { 
+  phim: Phim; 
+  isActive: boolean; 
+  onClose: () => void 
 }) {
-  const { user } = useUser();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const watchTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const { user } = useUser();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const watchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const isMobile = typeof navigator !== "undefined" 
-    && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isMobile = typeof navigator !== "undefined" 
+    && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(1); 
-  const [progress, setProgress] = useState(0); 
-  const [isThuyetMinh, setIsThuyetMinh] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [showUI, setShowUI] = useState(true);
-  const [isCopied, setIsCopied] = useState(false);
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  
-  const [qualities, setQualities] = useState<any[]>([]);
-  const [currentQuality, setCurrentQuality] = useState<number>(-1);
-  const [showQualityMenu, setShowQualityMenu] = useState(false);
-  
-  const [isLiked, setIsLiked] = useState(false);
-  const [localLikes, setLocalLikes] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(1); 
+  const [progress, setProgress] = useState(0); 
+  const [isThuyetMinh, setIsThuyetMinh] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showUI, setShowUI] = useState(true);
+  const [isCopied, setIsCopied] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  
+  const [qualities, setQualities] = useState<any[]>([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1);
+  const [showQualityMenu, setShowQualityMenu] = useState(false);
+  
+  const [isLiked, setIsLiked] = useState(false);
+  const [localLikes, setLocalLikes] = useState(0);
 
-  const finalVideoLink = phim?.video_src || phim?.videoSrc || "";
+  const finalVideoLink = phim?.video_src || phim?.videoSrc || "";
 
-  useEffect(() => {
-    if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count);
-  }, [phim?.likes_count]);
+  useEffect(() => {
+    if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count);
+  }, [phim?.likes_count]);
 
-  useEffect(() => {
-    if (user && phim?.id) {
-      const checkLike = async () => {
-        const { data } = await supabase.from('movie_likes').select('*').match({ user_id: user.id, movie_id: phim.id }).single();
-        if (data) setIsLiked(true);
-      };
-      checkLike();
-    }
-  }, [user, phim?.id]);
+  useEffect(() => {
+    if (user && phim?.id) {
+      const checkLike = async () => {
+        const { data } = await supabase.from('movie_likes').select('*').match({ user_id: user.id, movie_id: phim.id }).single();
+        if (data) setIsLiked(true);
+      };
+      checkLike();
+    }
+  }, [user, phim?.id]);
 
-  useEffect(() => {
-    if (isActive && phim?.id) {
-      if (user) supabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
-      watchTimerRef.current = setTimeout(async () => {
-        await supabase.rpc('increment_movie_views', { m_id: phim.id });
-      }, 10 * 60 * 1000); 
-    } else {
-      if (watchTimerRef.current) clearTimeout(watchTimerRef.current);
-    }
-    return () => { if (watchTimerRef.current) clearTimeout(watchTimerRef.current); };
-  }, [isActive, phim?.id, user]);
-// Khóa tốc độ phát không cho trình duyệt tự ý reset
+  useEffect(() => {
+    if (isActive && phim?.id) {
+      if (user) supabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
+      watchTimerRef.current = setTimeout(async () => {
+        await supabase.rpc('increment_movie_views', { m_id: phim.id });
+      }, 10 * 60 * 1000); 
+    } else {
+      if (watchTimerRef.current) clearTimeout(watchTimerRef.current);
+    }
+    return () => { if (watchTimerRef.current) clearTimeout(watchTimerRef.current); };
+  }, [isActive, phim?.id, user]);
+
+  // Khóa tốc độ phát không cho trình duyệt tự ý reset
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate, isPlaying]);
-  const handleTimeUpdate = useCallback(() => {
-    if (!videoRef.current) return;
-    const p = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-    setProgress(isNaN(p) ? 0 : p);
-  }, []);
 
-  const resetTimer = useCallback(() => {
-    setShowUI(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      if (isPlaying) { 
-        setShowUI(false);
-        setShowVolumeSlider(false);
-        setShowQualityMenu(false);
-      }
-    }, 3500);
-  }, [isPlaying]);
+  const handleTimeUpdate = useCallback(() => {
+    if (!videoRef.current) return;
+    const p = (videoRef.current.currentTime / videoRef.current.duration) * 100;
+    setProgress(isNaN(p) ? 0 : p);
+  }, []);
 
-  useEffect(() => { resetTimer(); return () => { if (timerRef.current) clearTimeout(timerRef.current); }; }, [resetTimer]);
+  const resetTimer = useCallback(() => {
+    setShowUI(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      if (isPlaying) { 
+        setShowUI(false);
+        setShowVolumeSlider(false);
+        setShowQualityMenu(false);
+      }
+    }, 3500);
+  }, [isPlaying]);
 
-  // ==================== HLS INIT - ĐÃ FIX + KHÔI PHỤC CHẤT LƯỢNG ====================
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !finalVideoLink) return;
+  useEffect(() => { resetTimer(); return () => { if (timerRef.current) clearTimeout(timerRef.current); }; }, [resetTimer]);
 
-    if (!isActive) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      video.pause();
-      video.removeAttribute('src'); 
-      video.load(); 
-      setIsPlaying(false);
-      return; 
-    }
+  // ==================== HLS INIT - ĐÃ FIX + KHÔI PHỤC CHẤT LƯỢNG ====================
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !finalVideoLink) return;
 
-    if (Hls.isSupported()) {
-      const hlsConfig = {
-        startLevel: -1,
-        maxBufferLength: isMobile ? 25 : 45,
-        maxMaxBufferLength: isMobile ? 45 : 90,
-        maxBufferSize: isMobile ? 30 * 1024 * 1024 : 80 * 1024 * 1024,
-        backBufferLength: isMobile ? 30 : 90,
-        fragLoadingMaxRetry: 8,
-        manifestLoadingMaxRetry: 6,
-        levelLoadingMaxRetry: 6,
-        enableWorker: !isMobile,
-        lowLatencyMode: false,
-        xhrSetup: (xhr: XMLHttpRequest) => {
-          xhr.withCredentials = false;
-        }
-      };
+    if (!isActive) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      video.pause();
+      video.removeAttribute('src'); 
+      video.load(); 
+      setIsPlaying(false);
+      return; 
+    }
 
-      const hls = new Hls(hlsConfig);
-      hlsRef.current = hls;
+    if (Hls.isSupported()) {
+      const hlsConfig = {
+        startLevel: -1,
+        maxBufferLength: isMobile ? 25 : 45,
+        maxMaxBufferLength: isMobile ? 45 : 90,
+        maxBufferSize: isMobile ? 30 * 1024 * 1024 : 80 * 1024 * 1024,
+        backBufferLength: isMobile ? 30 : 90,
+        fragLoadingMaxRetry: 8,
+        manifestLoadingMaxRetry: 6,
+        levelLoadingMaxRetry: 6,
+        enableWorker: !isMobile,
+        lowLatencyMode: false,
+        xhrSetup: (xhr: XMLHttpRequest) => {
+          xhr.withCredentials = false;
+        }
+      };
 
-      // === LẤY DANH SÁCH CHẤT LƯỢNG (KHÔI PHỤC LẠI) ===
-      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-        const raw = data.levels.map((level: any, index: number) => {
-          let label = "SD";
-          if (level.height >= 1080) label = "Full HD";
-          else if (level.height >= 720) label = "HD";
-          return { height: level.height, index: index, label: label };
-        }).sort((a, b) => b.height - a.height);
-        
-        const filtered: any[] = []; 
-        const seen = new Set();
-        for (const q of raw) { 
-          if (!seen.has(q.label)) { 
-            filtered.push(q); 
-            seen.add(q.label); 
-          } 
-        }
-        setQualities(filtered);
-      });
+      const hls = new Hls(hlsConfig);
+      hlsRef.current = hls;
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            hls.startLoad();
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            hls.recoverMediaError();
-          } else {
-            hls.destroy();
-          }
-        }
-      });
+      // === LẤY DANH SÁCH CHẤT LƯỢNG (KHÔI PHỤC LẠI) ===
+      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        const raw = data.levels.map((level: any, index: number) => {
+          let label = "SD";
+          if (level.height >= 1080) label = "Full HD";
+          else if (level.height >= 720) label = "HD";
+          return { height: level.height, index: index, label: label };
+        }).sort((a, b) => b.height - a.height);
+        
+        const filtered: any[] = []; 
+        const seen = new Set();
+        for (const q of raw) { 
+          if (!seen.has(q.label)) { 
+            filtered.push(q); 
+            seen.add(q.label); 
+          } 
+        }
+        setQualities(filtered);
+      });
 
-      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-        video.play()
-          .then(() => setIsPlaying(true))
-          .catch(() => setIsPlaying(false));
-      });
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            hls.startLoad();
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            hls.destroy();
+          }
+        }
+      });
 
-      hls.loadSource(finalVideoLink);
-      hls.attachMedia(video);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = finalVideoLink;
-      video.play().then(() => setIsPlaying(true));
-    }
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        video.play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      });
 
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-    };
-  }, [isActive, finalVideoLink, isMobile]);
+      hls.loadSource(finalVideoLink);
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = finalVideoLink;
+      video.play().then(() => setIsPlaying(true));
+    }
 
-  // ==================== AUTO RECOVER STALLED + VISIBILITY ====================
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [isActive, finalVideoLink, isMobile]);
 
-    const handleStalled = () => {
-      console.warn('🚨 VIDEO STALLED (mobile/PWA) → auto recover');
-      if (hlsRef.current) hlsRef.current.startLoad();
-      else video.load();
-    };
+  // ==================== AUTO RECOVER STALLED + VISIBILITY ====================
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isPlaying && video.paused) {
-        video.play().catch(() => {});
-      }
-    };
+    const handleStalled = () => {
+      console.warn('🚨 VIDEO STALLED (mobile/PWA) → auto recover');
+      if (hlsRef.current) hlsRef.current.startLoad();
+      else video.load();
+    };
 
-    video.addEventListener('stalled', handleStalled);
-    video.addEventListener('waiting', handleStalled);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isPlaying && video.paused) {
+        video.play().catch(() => {});
+      }
+    };
 
-    return () => {
-      video.removeEventListener('stalled', handleStalled);
-      video.removeEventListener('waiting', handleStalled);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isPlaying]);
+    video.addEventListener('stalled', handleStalled);
+    video.addEventListener('waiting', handleStalled);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.volume = volume; 
-    video.muted = isMuted;
-    
-    if (isActive) { 
-      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false)); 
-    } else { 
-      video.pause(); 
-      setIsPlaying(false); 
-    }
-  }, [isActive, isMuted, volume]);
+    return () => {
+      video.removeEventListener('stalled', handleStalled);
+      video.removeEventListener('waiting', handleStalled);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isPlaying]);
 
-  const togglePlay = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation(); 
-    resetTimer();
-    if (videoRef.current?.paused) { videoRef.current.play(); setIsPlaying(true); }
-    else { videoRef.current?.pause(); setIsPlaying(false); }
-  };
+  // TÁCH RIÊNG XỬ LÝ ÂM LƯỢNG ĐỂ TRÁNH LỖI AUTO-PLAY KHI PAUSE
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.volume = volume; 
+      video.muted = isMuted;
+    }
+  }, [volume, isMuted]);
 
-  const handleDoubleTap = (e: React.MouseEvent, direction: 'forward' | 'backward') => {
-    e.stopPropagation();
-    if (!videoRef.current) return;
-    videoRef.current.currentTime += direction === 'forward' ? 10 : -10;
-    resetTimer();
-    const el = e.currentTarget as HTMLElement;
-    el.style.backgroundColor = "rgba(255,255,255,0.2)";
-    setTimeout(() => el.style.backgroundColor = "transparent", 200);
-  };
+  // TÁCH RIÊNG XỬ LÝ CHƠI/DỪNG THEO TRẠNG THÁI ISACTIVE
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    if (isActive) { 
+      if (video.paused) {
+        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false)); 
+      }
+    } else { 
+      video.pause(); 
+      setIsPlaying(false); 
+    }
+  }, [isActive]);
 
-  const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation(); resetTimer();
-    if (!user || !phim?.id) return alert("Lão bản ơi, đăng nhập để thả tim nhé!");
-    
-    const newStatus = !isLiked;
-    setIsLiked(newStatus);
-    setLocalLikes(prev => Math.max(0, newStatus ? prev + 1 : prev - 1));
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation(); 
+    resetTimer();
+    if (videoRef.current?.paused) { videoRef.current.play(); setIsPlaying(true); }
+    else { videoRef.current?.pause(); setIsPlaying(false); }
+  };
 
-    if (newStatus) {
-      await supabase.from('movie_likes').insert({ user_id: user.id, movie_id: phim.id });
-      await supabase.rpc('increment_movie_likes', { m_id: phim.id });
-    } else {
-      await supabase.from('movie_likes').delete().match({ user_id: user.id, movie_id: phim.id });
-      await supabase.rpc('decrement_movie_likes', { m_id: phim.id });
-    }
-  };
+  const handleDoubleTap = (e: React.MouseEvent, direction: 'forward' | 'backward') => {
+    e.stopPropagation();
+    if (!videoRef.current) return;
+    videoRef.current.currentTime += direction === 'forward' ? 10 : -10;
+    resetTimer();
+    const el = e.currentTarget as HTMLElement;
+    el.style.backgroundColor = "rgba(255,255,255,0.2)";
+    setTimeout(() => el.style.backgroundColor = "transparent", 200);
+  };
 
-  const handleCopy = async (e: React.MouseEvent) => {
-    e.stopPropagation(); resetTimer();
-    const shareUrl = `${window.location.origin}/phim/${phim?.id}`;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setIsCopied(true); setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) { console.error(err); }
-  };
+  const handleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation(); resetTimer();
+    if (!user || !phim?.id) return alert("Lão bản ơi, đăng nhập để thả tim nhé!");
+    
+    const newStatus = !isLiked;
+    setIsLiked(newStatus);
+    setLocalLikes(prev => Math.max(0, newStatus ? prev + 1 : prev - 1));
 
-  if (!phim) return <div className="w-full h-full bg-black"></div>;
+    if (newStatus) {
+      await supabase.from('movie_likes').insert({ user_id: user.id, movie_id: phim.id });
+      await supabase.rpc('increment_movie_likes', { m_id: phim.id });
+    } else {
+      await supabase.from('movie_likes').delete().match({ user_id: user.id, movie_id: phim.id });
+      await supabase.rpc('decrement_movie_likes', { m_id: phim.id });
+    }
+  };
 
-  return (
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation(); resetTimer();
+    const shareUrl = `${window.location.origin}/phim/${phim?.id}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setIsCopied(true); setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) { console.error(err); }
+  };
+
+  if (!phim) return <div className="w-full h-full bg-black"></div>;
+
+  return (
     <div className="relative w-full h-[100dvh] bg-black flex justify-center items-center overflow-hidden" onMouseMove={resetTimer} onTouchStart={resetTimer}>
       
       {/* 1. LỚP ĐIỀU KHIỂN CHẠM (Back/Forward/Play) */}
@@ -316,11 +328,11 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { 
             <div className="relative">
               {showQualityMenu && (
                 <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md min-w-[80px]">
-                  <button onClick={(e) => { e.stopPropagation(); hlsRef.current!.currentLevel = -1; setCurrentQuality(-1); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === -1 ? 'bg-yellow-500 text-black' : 'text-white'}`}>Auto</button>
-                  {qualities.map((q) => (<button key={q.index} onClick={(e) => { e.stopPropagation(); hlsRef.current!.currentLevel = q.index; setCurrentQuality(q.index); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === q.index ? 'bg-yellow-500 text-black' : 'text-white'}`}>{q.label}</button>))}
+                  <button onClick={(e) => { e.stopPropagation(); if(hlsRef.current) hlsRef.current.currentLevel = -1; setCurrentQuality(-1); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === -1 ? 'bg-yellow-500 text-black' : 'text-white'}`}>Auto</button>
+                  {qualities.map((q) => (<button key={q.index} onClick={(e) => { e.stopPropagation(); if(hlsRef.current) hlsRef.current.currentLevel = q.index; setCurrentQuality(q.index); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === q.index ? 'bg-yellow-500 text-black' : 'text-white'}`}>{q.label}</button>))}
                 </div>
               )}
-              <button onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white font-bold text-[9px] uppercase">{currentQuality === -1 ? 'AUTO' : qualities.find(q => q.index === currentQuality)?.label}</button>
+              <button onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); setShowVolumeSlider(false); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white font-bold text-[9px] uppercase">{currentQuality === -1 ? 'AUTO' : qualities.find(q => q.index === currentQuality)?.label}</button>
             </div>
           )}
 
@@ -337,10 +349,31 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { 
             <span className="text-[10px] font-extrabold uppercase">{isThuyetMinh ? "TM" : "SUB"}</span>
           </button>
 
-          {/* Nút m của Loa */}
-          <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); }} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg">
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
-          </button>
+          {/* Nút m của Loa - ĐÃ BỔ SUNG THANH TRƯỢT */}
+          <div className="relative">
+            {showVolumeSlider && (
+              <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl w-10 h-32 flex items-center justify-center backdrop-blur-md">
+                <input
+                  type="range" min="0" max="1" step="0.05" value={isMuted ? 0 : volume}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    resetTimer();
+                    const val = parseFloat(e.target.value);
+                    setVolume(val);
+                    setIsMuted(val === 0);
+                  }}
+                  className="w-24 h-1.5 appearance-none bg-gray-600 rounded-lg outline-none accent-yellow-500 -rotate-90"
+                />
+              </div>
+            )}
+            <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false); }} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg">
+               {isMuted || volume === 0 ? (
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+               ) : (
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+               )}
+            </button>
+          </div>
 
           {/* Nút Chia sẻ */}
           <button onClick={handleCopy} className={`p-3 rounded-full transition-colors backdrop-blur-md shadow-lg ${isCopied ? "bg-green-500 text-white" : "bg-black/50 text-white"}`}>
