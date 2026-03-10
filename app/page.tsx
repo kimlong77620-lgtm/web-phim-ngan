@@ -135,11 +135,8 @@ function PhongChieu({ phim: initialPhim, onClose, danhSachToanBo }: { phim: Phim
     }
   };
 
-  return (
+return (
     <div className="absolute top-0 left-0 w-full h-[100dvh] bg-black z-[100] overflow-y-scroll snap-y snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onWheel={onWheel}>
-      <button onClick={handleClose} className="fixed top-6 left-6 z-[9999] p-3 bg-black/40 hover:bg-yellow-500 text-white hover:text-black rounded-full backdrop-blur-md border border-white/20 transition-all shadow-2xl active:scale-90">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      </button>
       {danhSachToanBo.map((phimItem) => (
         <div key={phimItem.id} id={`snap-video-${phimItem.id}`} data-id={phimItem.id} className="snap-video-item relative w-full h-[100dvh] snap-start snap-always shrink-0 bg-black">
           {phimItem && <TrinhPhatVideo phim={phimItem} isActive={activeId === phimItem.id} onClose={handleClose} />}
@@ -147,7 +144,7 @@ function PhongChieu({ phim: initialPhim, onClose, danhSachToanBo }: { phim: Phim
       ))}
     </div>
   );
-}
+} // <--- Chú ý dấu ngoặc nhọn quan trọng này để đóng hàm PhongChieu nhé!
 
 // 4. TRANG CHỦ (SẢNH CHÍNH)
 export default function Home() {
