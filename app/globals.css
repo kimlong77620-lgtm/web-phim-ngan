@@ -1,14 +1,27 @@
-@import "tailwindcss"; /* Đây là cách gọi "long bào" của v4, cực nhanh và chuẩn */
+/* 🎯 1. Kéo font chữ về trước tiên để không bị giật nháy */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;700;900&display=swap');
+
+/* 🎯 2. Mặc "long bào" Tailwind v4 */
+@import "tailwindcss";
 
 @layer base {
   html, body {
-    /* Ép sạp phim phải rộng bằng đúng màn hình điện thoại, không thừa ra 1mm nào */
-    width: 100vw !important;
-    max-width: 100vw !important;
-    overflow-x: hidden !important; /* Diệt tận gốc lỗi trượt ngang gây zoom out */
-    background-color: #0b0f19 !important;
-    color: white !important;
+    /* Ép sạp phim phải rộng bằng đúng màn hình, diệt tận gốc lỗi trượt ngang */
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden; 
+    background-color: #0b0f19;
+    color: white;
     margin: 0;
     padding: 0;
+
+    /* 🎯 3. VŨ KHÍ BÍ MẬT CHO PWA (Cảm giác như App thật) */
+    overscroll-behavior-y: none; /* Chống hiệu ứng kéo nảy (bập bênh) trên iPhone/Android */
+    -webkit-tap-highlight-color: transparent; /* Xóa ô nhấp nháy màu xanh điên rồ khi chạm vào nút trên iOS */
+  }
+
+  /* Phủ font chữ xịn cho toàn bộ sạp phim */
+  body {
+    font-family: 'Lexend', sans-serif;
   }
 }
