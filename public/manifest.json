@@ -1,26 +1,23 @@
 {
-  "name": "Xem Phim Không Cần Não",
+  "name": "Sạp Zhaodi",
   "short_name": "Sạp Zhaodi",
-  "description": "Sạp phim dịch độc quyền bởi xiaopan0396",
+  "description": "Xem Phim Không Cần Não",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0f19",
   "theme_color": "#eab308",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/logo192.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "/logo512.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
     }
   ]
 }
