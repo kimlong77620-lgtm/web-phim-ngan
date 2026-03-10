@@ -305,20 +305,19 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         onTimeUpdate={handleTimeUpdate}
       />
       
-      {/* 3. TOÀN BỘ GIAO DIỆN (UI OVERLAY) */}
+      {/* 3. TOÀN BỘ GIAO DIỆN (UI OVERLAY) - [ĐÃ SỬA LỖI NÚT THOÁT KHÔNG ĐỒNG BỘ] */}
       <div className={`absolute inset-0 z-30 pointer-events-none transition-opacity duration-500 ${showUI ? 'opacity-100' : 'opacity-0'}`}>
         
-        {/* --- NÚT QUAY LẠI (GÓC TRÊN TRÁI) --- */}
+        {/* --- NÚT QUAY LẠI (GÓC TRÊN TRÁI) - [ĐÃ ĐƯỢC CHỨNG CHỈ pointer-events-auto VÀ ĐỒNG BỘ] --- */}
         <button 
           onClick={(e) => { e.stopPropagation(); onClose(); }} 
-          className={`pointer-events-auto absolute top-6 left-4 p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-all duration-500 z-[110]
-            ${!showUI ? 'opacity-0 invisible pointer-events-none' : 'opacity-100 visible'}`}
+          className="pointer-events-auto absolute top-6 left-4 p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-all duration-500 z-[110]"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
 
-        {/* --- CỘT NÚT CHỨC NĂNG (BÊN PHẢI) --- */}
-        <div className="pointer-events-auto absolute right-4 bottom-32 flex flex-col gap-6 items-center z-40">
+        {/* --- CỘT NÚT CHỨC NĂNG (BÊN PHẢI) - [ĐÃ NÂNG Z-INDEX LÊN 50 ĐỂ CHỐNG LIỆT] --- */}
+        <div className="pointer-events-auto absolute right-4 bottom-36 flex flex-col gap-6 items-center z-50">
           
           {/* Tốc độ phát */}
           <button onClick={(e) => { e.stopPropagation(); resetTimer(); const s = [1, 1.25, 1.5, 2, 0.5]; const n = s[(s.indexOf(playbackRate) + 1) % s.length]; setPlaybackRate(n); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg font-bold text-[10px]">{playbackRate}x</button>
@@ -349,7 +348,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
             <span className="text-[10px] font-extrabold uppercase">{isThuyetMinh ? "TM" : "SUB"}</span>
           </button>
 
-          {/* Nút m của Loa - ĐÃ BỔ SUNG THANH TRƯỢT */}
+          {/* Nút của Loa - ĐÃ SỬA GIAO DIỆN THANH TRƯỢT */}
           <div className="relative">
             {showVolumeSlider && (
               <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl w-10 h-32 flex items-center justify-center backdrop-blur-md">
@@ -362,7 +361,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
                     setVolume(val);
                     setIsMuted(val === 0);
                   }}
-                  className="w-24 h-1.5 appearance-none bg-gray-600 rounded-lg outline-none accent-yellow-500 -rotate-90"
+                  className="pointer-events-auto w-24 h-1.5 appearance-none bg-gray-600 rounded-lg outline-none accent-yellow-500 -rotate-90"
                 />
               </div>
             )}
@@ -381,9 +380,9 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
           </button>
         </div>
 
-        {/* --- ĐIỀU KHIỂN DƯỚI CÙNG (PLAY/PROGRESS) --- */}
-        <div className="pointer-events-auto absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent pt-24 pb-10 px-6 z-40">
-          <div className="flex justify-center items-center gap-14 mb-8">
+        {/* --- ĐIỀU KHIỂN DƯỚI CÙNG (PLAY/PROGRESS) - [ĐÃ SỬA ĐỂ KHÔNG ĂN TRỘM CLICK CỦA NÚT CHỨC NĂNG] --- */}
+        <div className="pointer-events-none absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent pt-24 pb-10 px-6 z-40">
+          <div className="pointer-events-auto flex justify-center items-center gap-14 mb-8">
              <button onClick={(e) => { e.stopPropagation(); resetTimer(); if(videoRef.current) videoRef.current.currentTime -= 10; }} className="text-white/60 hover:text-white transition-all active:scale-75">
                <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
              </button>
@@ -405,7 +404,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
                 setProgress(parseFloat(e.target.value)); 
               } 
             }} 
-            className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500 hover:h-2 transition-all shadow-lg" 
+            className="pointer-events-auto w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500 hover:h-2 transition-all shadow-lg" 
           />
         </div>
       </div>

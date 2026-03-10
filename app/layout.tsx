@@ -64,7 +64,7 @@ export default function RootLayout({
             </div>
           ) : (
             <>
-              {/* Đã gỡ bỏ class "relative" gây xung đột z-index, thêm chuẩn 100dvh */}
+              {/* Đã dọn dẹp class "relative" và "min-h-screen" để tránh xung đột */}
               <main className="w-full min-h-[100dvh] flex flex-col">
                 {children}
               </main>
