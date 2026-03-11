@@ -315,13 +315,13 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🎬 TẦNG 1: KHO PHIM DỌC (Chỉ hiển thị 8 phim) */}
+  {/* 🎬 TẦNG 1: KHO PHIM DỌC (Đã giảm xuống 4 phim) */}
         {phimDoc.length > 0 && (
           <div className="mb-12">
             <div className="flex justify-between items-end mb-4">
-              <h2 className="text-lg font-bold border-l-4 border-yellow-500 pl-2 uppercase italic tracking-tighter leading-none">Phim Ngắn Màn Dọc</h2>
-              {/* Nút Xem thêm gọi Trang trượt ngang */}
-              {phimDoc.length > 8 && (
+              <h2 className="text-lg font-bold border-l-4 border-yellow-500 pl-2 uppercase italic tracking-tighter leading-none">Phim Dọc Không Não</h2>
+              {/* 🎯 Chỗ sửa số 1: Hiển thị nút "Xem thêm" nếu có lớn hơn 4 phim */}
+              {phimDoc.length > 4 && (
                 <button 
                   onClick={() => setViewingList("doc")} 
                   className="text-xs font-black uppercase text-yellow-500 hover:text-white transition-colors bg-gray-900 px-3 py-1.5 rounded-lg border border-yellow-500/30 flex items-center gap-1 active:scale-95"
@@ -332,7 +332,8 @@ export default function Home() {
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {phimDoc.slice(0, 8).map((p) => (
+              {/* 🎯 Chỗ sửa số 2: Dùng slice(0, 4) để chỉ cắt lấy đúng 4 phim đầu tiên */}
+              {phimDoc.slice(0, 4).map((p) => (
                 <div key={p.id} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500 transition-all shadow-lg hover:-translate-y-1">
                   <div className="relative aspect-[2/3] overflow-hidden">
                     <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
