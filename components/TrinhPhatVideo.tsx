@@ -22,7 +22,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 }) {
   const { user } = useUser();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const playerContainerRef = useRef<HTMLDivElement>(null); // 🎯 Ref dùng để phóng to toàn màn hình
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const watchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,8 +46,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   
   const [isLiked, setIsLiked] = useState(false);
   const [localLikes, setLocalLikes] = useState(0);
-
-  // 🎯 STATE FULLSCREEN
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // ==================== TÁCH LINK LÀM PHIM NHIỀU TẬP ====================
@@ -58,12 +56,9 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
   const [tapHienTai, setTapHienTai] = useState(0);
   const [showTapMenu, setShowTapMenu] = useState(false);
-
   const finalVideoLink = danhSachTap[tapHienTai] || "";
 
-  useEffect(() => {
-    if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count);
-  }, [phim?.likes_count]);
+  useEffect(() => { if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count); }, [phim?.likes_count]);
 
   useEffect(() => {
     if (user && phim?.id) {
@@ -78,20 +73,12 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   useEffect(() => {
     if (isActive && phim?.id) {
       if (user) supabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
-      watchTimerRef.current = setTimeout(async () => {
-        await supabase.rpc('increment_movie_views', { m_id: phim.id });
-      }, 10 * 60 * 1000); 
-    } else {
-      if (watchTimerRef.current) clearTimeout(watchTimerRef.current);
-    }
+      watchTimerRef.current = setTimeout(async () => { await supabase.rpc('increment_movie_views', { m_id: phim.id }); }, 10 * 60 * 1000); 
+    } else { if (watchTimerRef.current) clearTimeout(watchTimerRef.current); }
     return () => { if (watchTimerRef.current) clearTimeout(watchTimerRef.current); };
   }, [isActive, phim?.id, user]);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = playbackRate;
-    }
-  }, [playbackRate, isPlaying]);
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = playbackRate; }, [playbackRate, isPlaying]);
 
   const handleTimeUpdate = useCallback(() => {
     if (!videoRef.current) return;
@@ -103,31 +90,20 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     setShowUI(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      if (isPlaying) { 
-        setShowUI(false);
-        setShowVolumeSlider(false);
-        setShowQualityMenu(false);
-        setShowTapMenu(false);
-      }
+      if (isPlaying) { setShowUI(false); setShowVolumeSlider(false); setShowQualityMenu(false); setShowTapMenu(false); }
     }, 3500);
   }, [isPlaying]);
 
   useEffect(() => { resetTimer(); return () => { if (timerRef.current) clearTimeout(timerRef.current); }; }, [resetTimer]);
 
-  // ==================== LẮNG NGHE SỰ KIỆN FULLSCREEN ====================
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
+    const handleFullscreenChange = () => { setIsFullscreen(!!document.fullscreenElement); };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-    };
+    return () => { document.removeEventListener('fullscreenchange', handleFullscreenChange); document.removeEventListener('webkitfullscreenchange', handleFullscreenChange); };
   }, []);
 
-  // ==================== 🎯 NÂNG CẤP: ÉP XOAY NGANG & VỪA KHÍT MÀN HÌNH (ĐÃ FIX TYPESCRIPT) ====================
+  // ==================== 🎯 ĐÃ SỬA: CẢM BIẾN DỌC/NGANG CHUẨN XÁC ====================
   const toggleFullscreen = async (e: React.MouseEvent) => {
     e.stopPropagation();
     resetTimer();
@@ -139,31 +115,27 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         if (elem.requestFullscreen) await elem.requestFullscreen();
         else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
 
-        // Thêm bùa (as any) để bịt miệng TypeScript
         const screenOrientation = (window.screen as any).orientation;
-        if (screenOrientation && screenOrientation.lock) {
-          await screenOrientation.lock("landscape").catch((err: any) => {
+        if (screenOrientation && screenOrientation.lock && videoRef.current) {
+          // 🎯 ĐO KÍCH THƯỚC: Nếu Chiều Ngang > Chiều Dọc => Ép xoay ngang, ngược lại giữ dọc
+          const isHorizontal = videoRef.current.videoWidth > videoRef.current.videoHeight;
+          const orientationType = isHorizontal ? "landscape" : "portrait";
+          
+          await screenOrientation.lock(orientationType).catch((err: any) => {
             console.warn("Máy khách đang khóa xoay hệ điều hành:", err);
           });
         }
-      } catch (err: any) { 
-        console.error("Lỗi phóng to:", err); 
-      }
+      } catch (err: any) { console.error("Lỗi phóng to:", err); }
     } else {
       try {
         const screenOrientation = (window.screen as any).orientation;
-        if (screenOrientation && screenOrientation.unlock) {
-          screenOrientation.unlock();
-        }
+        if (screenOrientation && screenOrientation.unlock) screenOrientation.unlock();
         if (doc.exitFullscreen) await doc.exitFullscreen();
         else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
-      } catch (err: any) { 
-        console.error("Lỗi thu nhỏ:", err); 
-      }
+      } catch (err: any) { console.error("Lỗi thu nhỏ:", err); }
     }
   };
 
-  // ==================== HLS INIT ====================
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !finalVideoLink) return;
@@ -201,28 +173,20 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         }
       });
 
-      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-      });
-
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => { video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false)); });
       hls.loadSource(finalVideoLink); hls.attachMedia(video);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = finalVideoLink; video.play().then(() => setIsPlaying(true));
     }
-
     return () => { if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; } };
   }, [isActive, finalVideoLink, isMobile]);
 
-  // TỰ ĐỘNG CHUYỂN TẬP KHI HẾT PHIM
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     const handleEnded = () => {
       if (tapHienTai < danhSachTap.length - 1) setTapHienTai(prev => prev + 1);
-      else {
-        if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-        onClose();
-      }
+      else { if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); onClose(); }
     };
     video.addEventListener('ended', handleEnded);
     return () => video.removeEventListener('ended', handleEnded);
@@ -237,9 +201,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     return () => { video.removeEventListener('stalled', handleStalled); video.removeEventListener('waiting', handleStalled); document.removeEventListener('visibilitychange', handleVisibilityChange); };
   }, [isPlaying]);
 
-  useEffect(() => {
-    if (videoRef.current) { videoRef.current.volume = volume; videoRef.current.muted = isMuted; }
-  }, [volume, isMuted]);
+  useEffect(() => { if (videoRef.current) { videoRef.current.volume = volume; videoRef.current.muted = isMuted; } }, [volume, isMuted]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -282,7 +244,15 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   if (!phim) return <div className="w-full h-full bg-black"></div>;
 
   return (
-    <div ref={playerContainerRef} className="relative w-full h-[100dvh] bg-black flex justify-center items-center overflow-hidden" onMouseMove={resetTimer} onTouchStart={resetTimer}>
+    // 🎯 ĐÃ SỬA: Thêm stopPropagation khi vuốt lúc Fullscreen để màn hình "treo" cứng ngắc
+    <div 
+      ref={playerContainerRef} 
+      className="relative w-full h-[100dvh] bg-black flex justify-center items-center overflow-hidden" 
+      onMouseMove={resetTimer} 
+      onTouchStart={(e) => { resetTimer(); if (isFullscreen) e.stopPropagation(); }}
+      onTouchMove={(e) => { if (isFullscreen) e.stopPropagation(); }}
+      onTouchEnd={(e) => { if (isFullscreen) e.stopPropagation(); }}
+    >
       
       <div className="absolute inset-0 z-20 flex">
         <div className="w-1/3 h-full" onClick={togglePlay} onDoubleClick={(e) => handleDoubleTap(e, 'backward')} />
@@ -313,7 +283,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
           
           <button onClick={(e) => { e.stopPropagation(); resetTimer(); const s = [1, 1.25, 1.5, 2, 0.5]; const n = s[(s.indexOf(playbackRate) + 1) % s.length]; setPlaybackRate(n); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg font-bold text-[10px]">{playbackRate}x</button>
 
-          {/* ==================== 🎯 MENU CHỌN TẬP PHIM BẢN PRO (DẠNG LƯỚI) ==================== */}
           {danhSachTap.length > 1 && (
             <div className="relative">
               {showTapMenu && (
@@ -384,7 +353,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
             {isCopied ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>}
           </button>
 
-          {/* ==================== 🎯 NÚT PHÓNG TO / XOAY MÀN HÌNH ==================== */}
           <button onClick={toggleFullscreen} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-colors mt-2">
             {isFullscreen ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
