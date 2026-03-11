@@ -246,8 +246,15 @@ export default function Home() {
     return xoaDau(p.title.toLowerCase()).includes(key) || p.dienVien?.some(dv => xoaDau(dv.toLowerCase()).includes(key)) || p.theLoai?.some(tl => xoaDau(tl.toLowerCase()).includes(key));
   });
 
-  const phimNgang = phimHienThi.filter(p => p.theLoai?.includes("Màn Ngang") || p.theLoai?.includes("màn ngang"));
-  const phimDoc = phimHienThi.filter(p => !p.theLoai?.includes("Màn Ngang") && !p.theLoai?.includes("màn ngang"));
+  // 🎯 BỘ LỌC SIÊU BẤT BẠI (BẤT CHẤP LỖI NHẬP LIỆU CỦA SUPABASE)
+  const isManNgang = (p: Phim) => {
+    if (!p.theLoai) return false;
+    const str = JSON.stringify(p.theLoai).toLowerCase();
+    return str.includes("màn ngang") || str.includes("man ngang");
+  };
+
+  const phimNgang = phimHienThi.filter(isManNgang);
+  const phimDoc = phimHienThi.filter((p) => !isManNgang(p));
 
   if (!isLoaded || loadingPhim) return <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center text-yellow-500 font-black animate-pulse">ĐANG MỞ CỬA SẠP...</div>;
 

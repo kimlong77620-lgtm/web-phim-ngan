@@ -127,6 +127,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     };
   }, []);
 
+  // ==================== 🎯 NÂNG CẤP: ÉP XOAY NGANG & VỪA KHÍT MÀN HÌNH (ĐÃ FIX TYPESCRIPT) ====================
   const toggleFullscreen = async (e: React.MouseEvent) => {
     e.stopPropagation();
     resetTimer();
@@ -134,11 +135,31 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     const doc = document as any;
 
     if (!isFullscreen) {
-      if (elem.requestFullscreen) await elem.requestFullscreen();
-      else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
+      try {
+        if (elem.requestFullscreen) await elem.requestFullscreen();
+        else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
+
+        // Thêm bùa (as any) để bịt miệng TypeScript
+        const screenOrientation = (window.screen as any).orientation;
+        if (screenOrientation && screenOrientation.lock) {
+          await screenOrientation.lock("landscape").catch((err: any) => {
+            console.warn("Máy khách đang khóa xoay hệ điều hành:", err);
+          });
+        }
+      } catch (err: any) { 
+        console.error("Lỗi phóng to:", err); 
+      }
     } else {
-      if (doc.exitFullscreen) await doc.exitFullscreen();
-      else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+      try {
+        const screenOrientation = (window.screen as any).orientation;
+        if (screenOrientation && screenOrientation.unlock) {
+          screenOrientation.unlock();
+        }
+        if (doc.exitFullscreen) await doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+      } catch (err: any) { 
+        console.error("Lỗi thu nhỏ:", err); 
+      }
     }
   };
 
