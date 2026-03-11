@@ -246,10 +246,13 @@ export default function Home() {
     return xoaDau(p.title.toLowerCase()).includes(key) || p.dienVien?.some(dv => xoaDau(dv.toLowerCase()).includes(key)) || p.theLoai?.some(tl => xoaDau(tl.toLowerCase()).includes(key));
   });
 
-  // 🎯 BỘ LỌC SIÊU BẤT BẠI (BẤT CHẤP LỖI NHẬP LIỆU CỦA SUPABASE)
-  const isManNgang = (p: Phim) => {
-    if (!p.theLoai) return false;
-    const str = JSON.stringify(p.theLoai).toLowerCase();
+// 🎯 BỘ LỌC SIÊU BẤT BẠI (ĐÃ FIX LỖI TÊN CỘT SUPABASE)
+  const isManNgang = (p: any) => {
+    // Gọi đúng tên cúng cơm "the_loai" của Supabase
+    const theLoaiThucTe = p.the_loai || p.theLoai; 
+    
+    if (!theLoaiThucTe) return false;
+    const str = JSON.stringify(theLoaiThucTe).toLowerCase();
     return str.includes("màn ngang") || str.includes("man ngang");
   };
 
