@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Hls from "hls.js";
 import { supabase } from "@/lib/supabase"; 
 import { useUser } from "@clerk/nextjs";
@@ -46,7 +46,17 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   const [isLiked, setIsLiked] = useState(false);
   const [localLikes, setLocalLikes] = useState(0);
 
-  const finalVideoLink = phim?.video_src || phim?.videoSrc || "";
+  // ==================== 🎯 TÁCH LINK LÀM PHIM NHIỀU TẬP ====================
+  const rawLinks = phim?.video_src || phim?.videoSrc || "";
+  const danhSachTap = useMemo(() => {
+    return rawLinks.split(",").map(link => link.trim()).filter(link => link.length > 0);
+  }, [rawLinks]);
+
+  const [tapHienTai, setTapHienTai] = useState(0);
+  const [showTapMenu, setShowTapMenu] = useState(false);
+
+  const finalVideoLink = danhSachTap[tapHienTai] || "";
+  // =========================================================================
 
   useEffect(() => {
     if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count);
@@ -95,6 +105,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         setShowUI(false);
         setShowVolumeSlider(false);
         setShowQualityMenu(false);
+        setShowTapMenu(false); // 🎯 Ẩn menu chọn tập khi UI ẩn
       }
     }, 3500);
   }, [isPlaying]);
@@ -189,7 +200,24 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         hlsRef.current = null;
       }
     };
-  }, [isActive, finalVideoLink, isMobile]);
+  }, [isActive, finalVideoLink, isMobile]); // 🎯 Re-run HLS khi finalVideoLink thay đổi (nhảy tập)
+
+  // ==================== 🎯 TỰ ĐỘNG CHUYỂN TẬP KHI HẾT PHIM ====================
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleEnded = () => {
+      if (tapHienTai < danhSachTap.length - 1) {
+        setTapHienTai(prev => prev + 1);
+      } else {
+        onClose(); // Nếu là tập cuối thì thoát
+      }
+    };
+
+    video.addEventListener('ended', handleEnded);
+    return () => video.removeEventListener('ended', handleEnded);
+  }, [tapHienTai, danhSachTap.length, onClose]);
 
   // ==================== AUTO RECOVER STALLED + VISIBILITY ====================
   useEffect(() => {
@@ -300,7 +328,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
       {/* 2. VIDEO GỐC */}
       <video 
-        ref={videoRef} playsInline loop 
+        ref={videoRef} playsInline loop={danhSachTap.length === 1} // 🎯 Nếu 1 tập thì loop, nhiều tập thì bỏ loop để auto next
         className="w-full max-h-[100dvh] object-contain z-10" 
         onTimeUpdate={handleTimeUpdate}
       />
@@ -322,6 +350,32 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
           {/* Tốc độ phát */}
           <button onClick={(e) => { e.stopPropagation(); resetTimer(); const s = [1, 1.25, 1.5, 2, 0.5]; const n = s[(s.indexOf(playbackRate) + 1) % s.length]; setPlaybackRate(n); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg font-bold text-[10px]">{playbackRate}x</button>
 
+          {/* ==================== 🎯 NÚT CHỌN TẬP PHIM (Chỉ hiện khi có >1 tập) ==================== */}
+          {danhSachTap.length > 1 && (
+            <div className="relative">
+              {showTapMenu && (
+                <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md min-w-[80px] max-h-[250px] overflow-y-auto">
+                  {danhSachTap.map((_, index) => (
+                    <button 
+                      key={index} 
+                      onClick={(e) => { e.stopPropagation(); setTapHienTai(index); setShowTapMenu(false); }} 
+                      className={`text-[11px] font-bold py-1.5 px-2 rounded ${tapHienTai === index ? 'bg-red-500 text-white' : 'text-white hover:bg-white/20'}`}
+                    >
+                      Tập {index + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowTapMenu(!showTapMenu); setShowQualityMenu(false); setShowVolumeSlider(false); }} 
+                className={`w-10 h-10 flex flex-col items-center justify-center rounded-full text-white font-bold transition-colors backdrop-blur-md shadow-lg ${showTapMenu ? 'bg-red-500' : 'bg-black/50 hover:bg-red-500'}`}
+              >
+                <span className="text-[7px] uppercase leading-none opacity-80 mt-1">Tập</span>
+                <span className="text-[12px] leading-none">{tapHienTai + 1}</span>
+              </button>
+            </div>
+          )}
+
           {/* Chất lượng phim */}
           {qualities.length > 0 && (
             <div className="relative">
@@ -331,7 +385,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
                   {qualities.map((q) => (<button key={q.index} onClick={(e) => { e.stopPropagation(); if(hlsRef.current) hlsRef.current.currentLevel = q.index; setCurrentQuality(q.index); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === q.index ? 'bg-yellow-500 text-black' : 'text-white'}`}>{q.label}</button>))}
                 </div>
               )}
-              <button onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); setShowVolumeSlider(false); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white font-bold text-[9px] uppercase">{currentQuality === -1 ? 'AUTO' : qualities.find(q => q.index === currentQuality)?.label}</button>
+              <button onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); setShowVolumeSlider(false); setShowTapMenu(false); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white font-bold text-[9px] uppercase">{currentQuality === -1 ? 'AUTO' : qualities.find(q => q.index === currentQuality)?.label}</button>
             </div>
           )}
 
@@ -365,7 +419,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
                 />
               </div>
             )}
-            <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false); }} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg">
+            <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false); setShowTapMenu(false); }} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg">
                {isMuted || volume === 0 ? (
                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
                ) : (
