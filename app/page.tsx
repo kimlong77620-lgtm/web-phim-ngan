@@ -191,23 +191,37 @@ export default function Home() {
   }, [showMenu]);
 
   // 🛡️ Đã sửa: Dùng authSupabase để fetch phim & lịch sử
-  useEffect(() => {
+useEffect(() => {
     async function fetchData() {
-      if (!authSupabase) return;
-      const { data: movies } = await authSupabase.from('movies').select('*').order('id', { ascending: false });
-      if (movies) setDanhSachPhim(movies);
-      
-      if (user) {
+      // 1. Nếu chưa load xong Clerk thì cứ đợi tí
+      if (!isLoaded) return;
+
+      // 2. Nếu không có authSupabase hoặc không có user thì tắt Loading luôn để hiện trang Login
+      if (!authSupabase || !user) {
+        setLoadingPhim(false);
+        return;
+      }
+
+      try {
+        // Lấy danh sách phim
+        const { data: movies } = await authSupabase.from('movies').select('*').order('id', { ascending: false });
+        if (movies) setDanhSachPhim(movies);
+        
+        // Lấy lịch sử xem (Vẫn giữ nguyên logic cũ của lão bản)
         const { data: historyData } = await authSupabase.from('watch_history').select('movies(*)').eq('user_id', user.id).order('watched_at', { ascending: false }).limit(4);
         if (historyData) {
           const validHistory = historyData.map((h: any) => h.movies).filter((m: any) => m !== null);
           setLichSuXem(validHistory);
         }
+      } catch (err) {
+        console.error("Lỗi múc dữ liệu:", err);
+      } finally {
+        // 🎯 CÚ CHỐT: Dù thành công hay lỗi thì cũng phải tắt Loading cho lão bản vào sạp!
+        setLoadingPhim(false);
       }
-      setLoadingPhim(false);
     }
     fetchData();
-  }, [user, phimDangXem, authSupabase]);
+  }, [user?.id, isLoaded, !!authSupabase, phimDangXem]);
 
   const handleCopy = (t: string, f: string) => { navigator.clipboard.writeText(t); setCopiedField(f); setTimeout(() => setCopiedField(""), 2000); };
 
