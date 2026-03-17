@@ -7,19 +7,25 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("⚠️ Ấy chết! Lão bản quên nhập Key của Supabase rồi kìa!");
 }
 
-// 1. Giữ nguyên kết nối cũ để dùng cho các trang không cần đăng nhập (nếu có)
+// 1. Client công cộng dùng cho dữ liệu không bảo mật
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// 2. 🛡️ VŨ KHÍ MỚI: Hàm tạo kết nối dành riêng cho người dùng đã đăng nhập
+// 2. 🛡️ BIẾN GIỮ KẾT NỐI DUY NHẤT (Singleton)
+let cachedClient: any = null;
+
 export const createClerkSupabaseClient = (session: any) => {
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  // Nếu đã có đệ tử rồi thì dùng lại, không đẻ thêm nữa
+  if (cachedClient) return cachedClient;
+
+  cachedClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: {
       fetch: async (url, options = {}) => {
-        // Lấy "thẻ thông hành" JWT từ Clerk (Template đã tạo ở Bước 1)
         const clerkToken = await session?.getToken({ template: 'supabase' });
-
         const headers = new Headers(options.headers);
-        headers.set('Authorization', `Bearer ${clerkToken}`);
+        
+        if (clerkToken) {
+          headers.set('Authorization', `Bearer ${clerkToken}`);
+        }
 
         return fetch(url, {
           ...options,
@@ -28,4 +34,6 @@ export const createClerkSupabaseClient = (session: any) => {
       },
     },
   });
+
+  return cachedClient;
 };
