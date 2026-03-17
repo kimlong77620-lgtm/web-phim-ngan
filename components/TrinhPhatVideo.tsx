@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Hls from "hls.js";
-import { supabase } from "@/lib/supabase"; 
-import { useUser } from "@clerk/nextjs";
+import { createClerkSupabaseClient } from "@/lib/supabase"; 
+import { useUser, useSession } from "@clerk/nextjs"; 
 
 export interface Phim {
   id: number;
@@ -21,6 +21,13 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   onClose: () => void 
 }) {
   const { user } = useUser();
+  const { session } = useSession(); 
+
+  // 🛡️ Tạo client có "thẻ thông hành" để bước qua cửa RLS
+  const authSupabase = useMemo(() => {
+    return session ? createClerkSupabaseClient(session) : null;
+  }, [session]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -60,23 +67,27 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
   useEffect(() => { if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count); }, [phim?.likes_count]);
 
+  // 🛡️ Đã sửa: Dùng authSupabase để check Like
   useEffect(() => {
-    if (user && phim?.id) {
+    if (authSupabase && user && phim?.id) {
       const checkLike = async () => {
-        const { data } = await supabase.from('movie_likes').select('*').match({ user_id: user.id, movie_id: phim.id }).single();
+        const { data } = await authSupabase.from('movie_likes').select('*').match({ user_id: user.id, movie_id: phim.id }).single();
         if (data) setIsLiked(true);
       };
       checkLike();
     }
-  }, [user, phim?.id]);
+  }, [authSupabase, user, phim?.id]);
 
+  // 🛡️ Đã sửa: Dùng authSupabase để lưu lịch sử & tăng view
   useEffect(() => {
-    if (isActive && phim?.id) {
-      if (user) supabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
-      watchTimerRef.current = setTimeout(async () => { await supabase.rpc('increment_movie_views', { m_id: phim.id }); }, 10 * 60 * 1000); 
+    if (isActive && phim?.id && authSupabase) {
+      if (user) authSupabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
+      watchTimerRef.current = setTimeout(async () => { 
+        await authSupabase.rpc('increment_movie_views', { m_id: phim.id }); 
+      }, 10 * 60 * 1000); 
     } else { if (watchTimerRef.current) clearTimeout(watchTimerRef.current); }
     return () => { if (watchTimerRef.current) clearTimeout(watchTimerRef.current); };
-  }, [isActive, phim?.id, user]);
+  }, [isActive, phim?.id, user, authSupabase]);
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = playbackRate; }, [playbackRate, isPlaying]);
 
@@ -103,7 +114,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     return () => { document.removeEventListener('fullscreenchange', handleFullscreenChange); document.removeEventListener('webkitfullscreenchange', handleFullscreenChange); };
   }, []);
 
-  // ==================== 🎯 ĐÃ SỬA: CẢM BIẾN DỌC/NGANG CHUẨN XÁC ====================
   const toggleFullscreen = async (e: React.MouseEvent) => {
     e.stopPropagation();
     resetTimer();
@@ -117,7 +127,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
         const screenOrientation = (window.screen as any).orientation;
         if (screenOrientation && screenOrientation.lock && videoRef.current) {
-          // 🎯 ĐO KÍCH THƯỚC: Nếu Chiều Ngang > Chiều Dọc => Ép xoay ngang, ngược lại giữ dọc
           const isHorizontal = videoRef.current.videoWidth > videoRef.current.videoHeight;
           const orientationType = isHorizontal ? "landscape" : "portrait";
           
@@ -198,7 +207,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     const handleStalled = () => { if (hlsRef.current) hlsRef.current.startLoad(); else video.load(); };
     const handleVisibilityChange = () => { if (document.visibilityState === 'visible' && isPlaying && video.paused) video.play().catch(() => {}); };
     video.addEventListener('stalled', handleStalled); video.addEventListener('waiting', handleStalled); document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => { video.removeEventListener('stalled', handleStalled); video.removeEventListener('waiting', handleStalled); document.removeEventListener('visibilitychange', handleVisibilityChange); };
+    return () => { video.removeEventListener('stalled', handleStalled); video.removeEventListener('waiting', handleStalled); document.removeEventListener('waiting', handleStalled); document.removeEventListener('visibilitychange', handleVisibilityChange); };
   }, [isPlaying]);
 
   useEffect(() => { if (videoRef.current) { videoRef.current.volume = volume; videoRef.current.muted = isMuted; } }, [volume, isMuted]);
@@ -227,12 +236,19 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     setTimeout(() => el.style.backgroundColor = "transparent", 200);
   };
 
+  // 🛡️ Đã sửa: Dùng authSupabase để Like/Dislike
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation(); resetTimer();
-    if (!user || !phim?.id) return alert("Lão bản ơi, đăng nhập để thả tim nhé!");
+    if (!authSupabase || !user || !phim?.id) return alert("Lão bản ơi, đăng nhập để thả tim nhé!");
     const newStatus = !isLiked; setIsLiked(newStatus); setLocalLikes(prev => Math.max(0, newStatus ? prev + 1 : prev - 1));
-    if (newStatus) { await supabase.from('movie_likes').insert({ user_id: user.id, movie_id: phim.id }); await supabase.rpc('increment_movie_likes', { m_id: phim.id }); } 
-    else { await supabase.from('movie_likes').delete().match({ user_id: user.id, movie_id: phim.id }); await supabase.rpc('decrement_movie_likes', { m_id: phim.id }); }
+    if (newStatus) { 
+      await authSupabase.from('movie_likes').insert({ user_id: user.id, movie_id: phim.id }); 
+      await authSupabase.rpc('increment_movie_likes', { m_id: phim.id }); 
+    } 
+    else { 
+      await authSupabase.from('movie_likes').delete().match({ user_id: user.id, movie_id: phim.id }); 
+      await authSupabase.rpc('decrement_movie_likes', { m_id: phim.id }); 
+    }
   };
 
   const handleCopy = async (e: React.MouseEvent) => {
@@ -244,7 +260,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   if (!phim) return <div className="w-full h-full bg-black"></div>;
 
   return (
-    // 🎯 ĐÃ SỬA: Thêm stopPropagation khi vuốt lúc Fullscreen để màn hình "treo" cứng ngắc
     <div 
       ref={playerContainerRef} 
       className="relative w-full h-[100dvh] bg-black flex justify-center items-center overflow-hidden" 
@@ -253,7 +268,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
       onTouchMove={(e) => { if (isFullscreen) e.stopPropagation(); }}
       onTouchEnd={(e) => { if (isFullscreen) e.stopPropagation(); }}
     >
-      
       <div className="absolute inset-0 z-20 flex">
         <div className="w-1/3 h-full" onClick={togglePlay} onDoubleClick={(e) => handleDoubleTap(e, 'backward')} />
         <div className="w-1/3 h-full" onClick={togglePlay} />
@@ -267,7 +281,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
       />
       
       <div className={`absolute inset-0 z-30 pointer-events-none transition-opacity duration-500 ${showUI ? 'opacity-100' : 'opacity-0'}`}>
-        
         <button 
           onClick={(e) => { 
             e.stopPropagation(); 
@@ -280,7 +293,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         </button>
 
         <div className="pointer-events-auto absolute right-4 bottom-36 flex flex-col gap-5 items-center z-50">
-          
           <button onClick={(e) => { e.stopPropagation(); resetTimer(); const s = [1, 1.25, 1.5, 2, 0.5]; const n = s[(s.indexOf(playbackRate) + 1) % s.length]; setPlaybackRate(n); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg font-bold text-[10px]">{playbackRate}x</button>
 
           {danhSachTap.length > 1 && (
@@ -344,8 +356,8 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
               </div>
             )}
             <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false); setShowTapMenu(false); }} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg">
-               {isMuted || volume === 0 ? ( <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
-               ) : ( <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg> )}
+                {isMuted || volume === 0 ? ( <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+                ) : ( <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg> )}
             </button>
           </div>
 

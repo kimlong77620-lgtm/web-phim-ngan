@@ -1,7 +1,7 @@
 "use client";
-import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
-import { useState, useRef, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase"; 
+import { SignInButton, UserButton, useUser, useSession } from "@clerk/nextjs"; // 1. Thêm useSession
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"; // Thêm useMemo
+import { createClerkSupabaseClient } from "@/lib/supabase"; // 2. Đổi sang hàm tạo client có thẻ
 import TrinhPhatVideo from '@/components/TrinhPhatVideo';
 
 // 1. KIỂU DỮ LIỆU
@@ -32,7 +32,6 @@ function DanhSachDayDu({ title, danhSach, onClose, onWatch, type }: { title: str
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     const distanceX = touchStart.x - touchEnd.x;
-    // 🎯 Vuốt từ trái sang phải để đóng (Giống hệt thao tác Back của iPhone)
     if (distanceX < -70) onClose();
   };
 
@@ -144,7 +143,7 @@ return (
       ))}
     </div>
   );
-} // <--- Chú ý dấu ngoặc nhọn quan trọng này để đóng hàm PhongChieu nhé!
+} 
 
 // 4. TRANG CHỦ (SẢNH CHÍNH)
 export default function Home() {
@@ -154,6 +153,7 @@ export default function Home() {
   const [tuKhoa, setTuKhoa] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   const { user, isLoaded } = useUser();
+  const { session } = useSession(); // 3. Lấy session
   const [isVip, setIsVip] = useState(false);
   const [isExperienceMode, setIsExperienceMode] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
@@ -162,7 +162,11 @@ export default function Home() {
   const [copiedField, setCopiedField] = useState(""); 
   const [loadingPhim, setLoadingPhim] = useState(true);
 
-  // 🎯 Công tắc bật Trang Danh Sách trượt ngang
+  // 🛡️ Tạo client có "thẻ thông hành" để bước qua cửa RLS
+  const authSupabase = useMemo(() => {
+    return session ? createClerkSupabaseClient(session) : null;
+  }, [session]);
+
   const [viewingList, setViewingList] = useState<"doc" | "ngang" | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -186,13 +190,15 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showMenu]);
 
+  // 🛡️ Đã sửa: Dùng authSupabase để fetch phim & lịch sử
   useEffect(() => {
     async function fetchData() {
-      const { data: movies } = await supabase.from('movies').select('*').order('id', { ascending: false });
+      if (!authSupabase) return;
+      const { data: movies } = await authSupabase.from('movies').select('*').order('id', { ascending: false });
       if (movies) setDanhSachPhim(movies);
       
       if (user) {
-        const { data: historyData } = await supabase.from('watch_history').select('movies(*)').eq('user_id', user.id).order('watched_at', { ascending: false }).limit(4);
+        const { data: historyData } = await authSupabase.from('watch_history').select('movies(*)').eq('user_id', user.id).order('watched_at', { ascending: false }).limit(4);
         if (historyData) {
           const validHistory = historyData.map((h: any) => h.movies).filter((m: any) => m !== null);
           setLichSuXem(validHistory);
@@ -201,7 +207,7 @@ export default function Home() {
       setLoadingPhim(false);
     }
     fetchData();
-  }, [user, phimDangXem]);
+  }, [user, phimDangXem, authSupabase]);
 
   const handleCopy = (t: string, f: string) => { navigator.clipboard.writeText(t); setCopiedField(f); setTimeout(() => setCopiedField(""), 2000); };
 
@@ -210,28 +216,31 @@ export default function Home() {
     else setShowVipModal(true);
   };
 
+  // 🛡️ Đã sửa: Dùng authSupabase để đồng bộ profile
   useEffect(() => {
     async function sync() {
-      if (!user) return; 
-      const { data } = await supabase.from('profiles').select('fan_id').eq('id', user.id).single();
+      if (!user || !authSupabase) return; 
+      const { data } = await authSupabase.from('profiles').select('fan_id').eq('id', user.id).single();
       let fid = data?.fan_id || Math.floor(100000 + Math.random() * 900000).toString();
       setFanId(fid);
-      await supabase.from('profiles').upsert({ id: user.id, email: user.primaryEmailAddress?.emailAddress, full_name: user.fullName, avatar_url: user.imageUrl, fan_id: fid, updated_at: new Date() });
+      await authSupabase.from('profiles').upsert({ id: user.id, email: user.primaryEmailAddress?.emailAddress, full_name: user.fullName, avatar_url: user.imageUrl, fan_id: fid, updated_at: new Date() });
     }
     sync();
-  }, [user]); 
+  }, [user, authSupabase]); 
 
+  // 🛡️ Đã sửa: Dùng authSupabase để check VIP & Experience Mode
   useEffect(() => {
     const check = async () => {
-      const { data: s } = await supabase.from('settings').select('is_experience_mode').limit(1).single();
+      if (!authSupabase) return;
+      const { data: s } = await authSupabase.from('settings').select('is_experience_mode').limit(1).single();
       if (s) setIsExperienceMode(s.is_experience_mode);
       if (user) {
-        const { data: p } = await supabase.from('profiles').select('is_vip').eq('id', user.id).single();
+        const { data: p } = await authSupabase.from('profiles').select('is_vip').eq('id', user.id).single();
         if (p) setIsVip(p.is_vip);
       }
     };
     check();
-  }, [user]);
+  }, [user, authSupabase]);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('phimId');
@@ -246,11 +255,8 @@ export default function Home() {
     return xoaDau(p.title.toLowerCase()).includes(key) || p.dienVien?.some(dv => xoaDau(dv.toLowerCase()).includes(key)) || p.theLoai?.some(tl => xoaDau(tl.toLowerCase()).includes(key));
   });
 
-// 🎯 BỘ LỌC SIÊU BẤT BẠI (ĐÃ FIX LỖI TÊN CỘT SUPABASE)
   const isManNgang = (p: any) => {
-    // Gọi đúng tên cúng cơm "the_loai" của Supabase
     const theLoaiThucTe = p.the_loai || p.theLoai; 
-    
     if (!theLoaiThucTe) return false;
     const str = JSON.stringify(theLoaiThucTe).toLowerCase();
     return str.includes("màn ngang") || str.includes("man ngang");
@@ -269,7 +275,6 @@ export default function Home() {
     </div>
   );
 
-  // 🎯 LUÔN ƯU TIÊN PHÒNG CHIẾU NỔI LÊN TRÊN CÙNG KHI CÓ PHIM ĐANG XEM
   if (phimDangXem) return <PhongChieu phim={phimDangXem} danhSachToanBo={phimHienThi} onClose={() => setPhimDangXem(null)} />;
 
   return (
@@ -303,7 +308,6 @@ export default function Home() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 pb-24">
-        {/* 🕒 MỤC LỊCH SỬ XEM */}
         {lichSuXem.length > 0 && !tuKhoa && (
           <div className="mb-10 animate-in fade-in duration-700">
             <h2 className="text-lg font-bold mb-4 border-l-4 border-blue-500 pl-2 uppercase italic text-blue-400 tracking-tighter">Phim bạn đã xem</h2>
@@ -325,12 +329,10 @@ export default function Home() {
           </div>
         )}
 
-  {/* 🎬 TẦNG 1: KHO PHIM DỌC (Đã giảm xuống 4 phim) */}
         {phimDoc.length > 0 && (
           <div className="mb-12">
             <div className="flex justify-between items-end mb-4">
               <h2 className="text-lg font-bold border-l-4 border-yellow-500 pl-2 uppercase italic tracking-tighter leading-none">Phim Dọc Không Não</h2>
-              {/* 🎯 Chỗ sửa số 1: Hiển thị nút "Xem thêm" nếu có lớn hơn 4 phim */}
               {phimDoc.length > 4 && (
                 <button 
                   onClick={() => setViewingList("doc")} 
@@ -342,7 +344,6 @@ export default function Home() {
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {/* 🎯 Chỗ sửa số 2: Dùng slice(0, 4) để chỉ cắt lấy đúng 4 phim đầu tiên */}
               {phimDoc.slice(0, 4).map((p) => (
                 <div key={p.id} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500 transition-all shadow-lg hover:-translate-y-1">
                   <div className="relative aspect-[2/3] overflow-hidden">
@@ -360,7 +361,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* 🎬 TẦNG 2: PHIM BỘ MÀN NGANG */}
         {phimNgang.length > 0 && (
           <div>
             <div className="flex justify-between items-end mb-4">
@@ -393,7 +393,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* 🎯 HIỂN THỊ TRANG DANH SÁCH MỞ RỘNG NẾU KHÁCH BẤM "XEM THÊM" */}
       {viewingList && (
         <DanhSachDayDu 
           title={viewingList === 'doc' ? "Kho Phim Dọc" : "Phim Bộ Màn Ngang"} 
@@ -404,7 +403,6 @@ export default function Home() {
         />
       )}
 
-      {/* VIP MODAL - GIỮ NGUYÊN */}
       {showVipModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-md">
           <div className="bg-[#1a1f2e] p-8 rounded-3xl max-w-sm w-full text-center border-2 border-yellow-500 shadow-2xl relative animate-in zoom-in-95">
@@ -439,7 +437,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* FLOATING BUTTONS */}
       <div className="fixed bottom-24 right-4 z-[90] flex flex-col gap-3">
         <a href="https://zalo.me/0386027105" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#0068ff] rounded-full flex items-center justify-center shadow-xl border-2 border-white hover:scale-110 transition-transform"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M21.037 8.049c-1.433-3.95-5.917-6.07-10.086-4.717-3.606 1.173-6.19 4.604-6.035 8.361.066 1.956.88 3.75 2.26 5.1L5.7 21.011l4.41-1.574c1.138.356 2.348.536 3.565.536 5.378 0 9.736-4.357 9.736-9.735 0-1.638-.568-2.983-1.41-4.348h-1.065h.09v1.175zm-8.875 5.253H9.422v-3.784c1.71 0 2.225-.047 2.225-1.04v-.09h-3.385v-.873h3.495c.86 0 1.31.396 1.31 1.127v.18c0 .888-.64 1.164-1.503 1.164H9.99v1.92h2.172v1.464zm3.805-1.465h-1.947V9.524h1.947v2.313zm-1.947 1.464V12.01h1.947v1.306h-1.947zm4.05-3.784h-1.413V8.212h1.413v1.306zm.395 2.54c0 .676-.462 1.244-1.09 1.244h-1.302v-3.468h1.302c.628 0 1.09.568 1.09 1.244v.98z"/></svg></a>
         <a href="https://m.me/61585837924317" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#0084FF] rounded-full flex items-center justify-center shadow-xl border-2 border-white hover:scale-110 transition-transform"><svg viewBox="0 0 36 36" fill="white" width="24" height="24"><path d="M18 2C9.163 2 2 8.791 2 17.168c0 4.757 2.41 8.995 6.136 11.838V34l5.6-3.083c1.373.385 2.833.593 4.356.593 8.837 0 16-6.791 16-15.168C34 8.791 26.837 2 18 2zm1.096 20.32-3.411-3.64-6.641 3.64 7.288-7.75 3.504 3.64 6.55-3.64-7.29 7.75z"/></svg></a>

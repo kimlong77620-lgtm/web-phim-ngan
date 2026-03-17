@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Hls from "hls.js";
-import { supabase } from "@/lib/supabase";
-import { useUser } from "@clerk/nextjs";
+// 🛡️ Sửa 1: Import hàm tạo client có "thẻ thông hành"
+import { createClerkSupabaseClient } from "@/lib/supabase"; 
+import { useUser, useSession } from "@clerk/nextjs"; // Thêm useSession
 
 export interface Phim {
   id: number;
@@ -21,6 +22,13 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   onClose: () => void 
 }) {
   const { user } = useUser();
+  const { session } = useSession(); // 🛡️ Sửa 2: Lấy session từ Clerk
+
+  // 🛡️ Sửa 3: Tạo authSupabase dùng session (dùng useMemo để tránh render lại vô ích)
+  const authSupabase = useMemo(() => {
+    return session ? createClerkSupabaseClient(session) : null;
+  }, [session]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const watchTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,17 +55,14 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   const [localLikes, setLocalLikes] = useState(0);
 
   // ==================== 🎯 ĐIỂM SỬA QUAN TRỌNG NHẤT ====================
-  // Tách link bằng dấu phẩy
   const rawLinks = phim?.video_src || phim?.videoSrc || "";
   const danhSachTap = useMemo(() => {
     return rawLinks.split(",").map(link => link.trim()).filter(link => link.length > 0);
   }, [rawLinks]);
 
-  // State theo dõi tập hiện tại (Mặc định là tập 0 - tức link đầu tiên)
   const [tapHienTai, setTapHienTai] = useState(0);
   const [showTapMenu, setShowTapMenu] = useState(false);
 
-  // Link cuối cùng dùng để chạy HLS sẽ lấy theo tapHienTai
   const finalVideoLink = danhSachTap[tapHienTai] || "";
   // ====================================================================
 
@@ -65,27 +70,29 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count);
   }, [phim?.likes_count]);
 
+  // 🛡️ Sửa 4: Dùng authSupabase để check Like
   useEffect(() => {
-    if (user && phim?.id) {
+    if (authSupabase && user && phim?.id) {
       const checkLike = async () => {
-        const { data } = await supabase.from('movie_likes').select('*').match({ user_id: user.id, movie_id: phim.id }).single();
+        const { data } = await authSupabase.from('movie_likes').select('*').match({ user_id: user.id, movie_id: phim.id }).single();
         if (data) setIsLiked(true);
       };
       checkLike();
     }
-  }, [user, phim?.id]);
+  }, [user, phim?.id, authSupabase]);
 
+  // 🛡️ Sửa 5: Dùng authSupabase để lưu lịch sử & tăng view
   useEffect(() => {
-    if (isActive && phim?.id) {
-      if (user) supabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
+    if (isActive && phim?.id && authSupabase) {
+      if (user) authSupabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
       watchTimerRef.current = setTimeout(async () => {
-        await supabase.rpc('increment_movie_views', { m_id: phim.id });
+        await authSupabase.rpc('increment_movie_views', { m_id: phim.id });
       }, 10 * 60 * 1000); 
     } else {
       if (watchTimerRef.current) clearTimeout(watchTimerRef.current);
     }
     return () => { if (watchTimerRef.current) clearTimeout(watchTimerRef.current); };
-  }, [isActive, phim?.id, user]);
+  }, [isActive, phim?.id, user, authSupabase]);
 
   const handleTimeUpdate = useCallback(() => {
     if (!videoRef.current) return;
@@ -101,7 +108,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         setShowUI(false);
         setShowVolumeSlider(false);
         setShowQualityMenu(false);
-        setShowTapMenu(false); // Ẩn luôn menu tập khi UI bị ẩn
+        setShowTapMenu(false); 
       }
     }, 3500);
   }, [isPlaying]);
@@ -185,19 +192,16 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         hlsRef.current = null;
       }
     };
-  }, [isActive, finalVideoLink, isMobile]); // Render lại HLS mỗi khi finalVideoLink thay đổi (khi đổi tập)
+  }, [isActive, finalVideoLink, isMobile]); 
 
-  // Auto next tập khi hết video
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleEnded = () => {
       if (tapHienTai < danhSachTap.length - 1) {
-        console.log(`Hết tập ${tapHienTai + 1}, auto nhảy sang tập ${tapHienTai + 2}`);
         setTapHienTai(prev => prev + 1);
       } else {
-        console.log("Hết phim, về trang chủ thui!");
         onClose();
       }
     };
@@ -263,20 +267,21 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     setTimeout(() => el.style.backgroundColor = "transparent", 200);
   };
 
+  // 🛡️ Sửa 6: Dùng authSupabase để Like/Dislike
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation(); resetTimer();
-    if (!user || !phim?.id) return alert("Lão bản ơi, đăng nhập để thả tim nhé!");
+    if (!authSupabase || !user || !phim?.id) return alert("Lão bản ơi, đăng nhập để thả tim nhé!");
     
     const newStatus = !isLiked;
     setIsLiked(newStatus);
     setLocalLikes(prev => Math.max(0, newStatus ? prev + 1 : prev - 1));
 
     if (newStatus) {
-      await supabase.from('movie_likes').insert({ user_id: user.id, movie_id: phim.id });
-      await supabase.rpc('increment_movie_likes', { m_id: phim.id });
+      await authSupabase.from('movie_likes').insert({ user_id: user.id, movie_id: phim.id });
+      await authSupabase.rpc('increment_movie_likes', { m_id: phim.id });
     } else {
-      await supabase.from('movie_likes').delete().match({ user_id: user.id, movie_id: phim.id });
-      await supabase.rpc('decrement_movie_likes', { m_id: phim.id });
+      await authSupabase.from('movie_likes').delete().match({ user_id: user.id, movie_id: phim.id });
+      await authSupabase.rpc('decrement_movie_likes', { m_id: phim.id });
     }
   };
 
@@ -387,7 +392,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
               </div>
             )}
             <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false); setShowTapMenu(false); }} className="p-3 bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg">
-              {isMuted || volume === 0 ? (<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>) : (<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>)}
+              {isMuted || volume === 0 ? (<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.41.05-.63.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>) : (<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>)}
             </button>
           </div>
 

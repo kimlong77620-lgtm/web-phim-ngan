@@ -3,10 +3,29 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// 🛡️ CHỐT BẢO VỆ: Báo lỗi tiếng Việt cực rõ ràng nếu quên nhập Key
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("⚠️ Ấy chết! Lão bản quên nhập Key của Supabase trong file .env.local hoặc trên Vercel rồi kìa!");
+  throw new Error("⚠️ Ấy chết! Lão bản quên nhập Key của Supabase rồi kìa!");
 }
 
-// Khởi tạo kết nối an toàn
+// 1. Giữ nguyên kết nối cũ để dùng cho các trang không cần đăng nhập (nếu có)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// 2. 🛡️ VŨ KHÍ MỚI: Hàm tạo kết nối dành riêng cho người dùng đã đăng nhập
+export const createClerkSupabaseClient = (session: any) => {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      fetch: async (url, options = {}) => {
+        // Lấy "thẻ thông hành" JWT từ Clerk (Template đã tạo ở Bước 1)
+        const clerkToken = await session?.getToken({ template: 'supabase' });
+
+        const headers = new Headers(options.headers);
+        headers.set('Authorization', `Bearer ${clerkToken}`);
+
+        return fetch(url, {
+          ...options,
+          headers,
+        });
+      },
+    },
+  });
+};
