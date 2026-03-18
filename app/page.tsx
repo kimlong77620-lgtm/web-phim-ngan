@@ -239,7 +239,8 @@ useEffect(() => {
   useEffect(() => {
     async function sync() {
       if (!user || !authSupabase) return; 
-      const { data } = await authSupabase.from('profiles').select('fan_id').eq('id', user.id).single();
+      // 🎯 SỬA CHỖ 1 Ở ĐÂY (maybeSingle)
+      const { data } = await authSupabase.from('profiles').select('fan_id').eq('id', user.id).maybeSingle();
       let fid = data?.fan_id || Math.floor(100000 + Math.random() * 900000).toString();
       setFanId(fid);
       await authSupabase.from('profiles').upsert({ id: user.id, email: user.primaryEmailAddress?.emailAddress, full_name: user.fullName, avatar_url: user.imageUrl, fan_id: fid, updated_at: new Date() });
@@ -251,10 +252,12 @@ useEffect(() => {
   useEffect(() => {
     const check = async () => {
       if (!authSupabase) return;
-      const { data: s } = await authSupabase.from('settings').select('is_experience_mode').limit(1).single();
+      // 🎯 SỬA CHỖ 2 Ở ĐÂY (maybeSingle)
+      const { data: s } = await authSupabase.from('settings').select('is_experience_mode').limit(1).maybeSingle();
       if (s) setIsExperienceMode(s.is_experience_mode);
       if (user) {
-        const { data: p } = await authSupabase.from('profiles').select('is_vip').eq('id', user.id).single();
+        // 🎯 SỬA CHỖ 3 Ở ĐÂY (maybeSingle)
+        const { data: p } = await authSupabase.from('profiles').select('is_vip').eq('id', user.id).maybeSingle();
         if (p) setIsVip(p.is_vip);
       }
     };
