@@ -221,9 +221,14 @@ useEffect(() => {
       }
     }
     fetchData();
-  }, [user?.id, isLoaded, !!authSupabase, phimDangXem]);
+// 🛡️ Đã xóa phimDangXem để chống lặp vô hạn, cứu rỗi băng thông
+  }, [user?.id, isLoaded, !!authSupabase]);
 
-  const handleCopy = (t: string, f: string) => { navigator.clipboard.writeText(t); setCopiedField(f); setTimeout(() => setCopiedField(""), 2000); };
+  const handleCopy = (t: string, f: string) => { 
+    navigator.clipboard.writeText(t); 
+    setCopiedField(f); 
+    setTimeout(() => setCopiedField(""), 2000); 
+  };
 
   const handleWatchPhim = (phim: Phim) => {
     if (isExperienceMode || isVip) setPhimDangXem(phim);
