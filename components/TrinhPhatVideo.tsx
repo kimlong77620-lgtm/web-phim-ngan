@@ -67,16 +67,21 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
   useEffect(() => { if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count); }, [phim?.likes_count]);
 
-  // 🛡️ Đã sửa: Dùng authSupabase để check Like
+// 🛡️ Đã sửa: Thêm isActive (chỉ check khi đang xem) và đổi thành maybeSingle() để hết lỗi 406
   useEffect(() => {
-    if (authSupabase && user && phim?.id) {
+    if (isActive && authSupabase && user && phim?.id) { // THÊM isActive VÀO ĐÂY!
       const checkLike = async () => {
-        const { data } = await authSupabase.from('movie_likes').select('*').match({ user_id: user.id, movie_id: phim.id }).single();
+        const { data, error } = await authSupabase
+          .from('movie_likes')
+          .select('*')
+          .match({ user_id: user.id, movie_id: phim.id })
+          .maybeSingle(); // ĐỔI THÀNH maybeSingle() - Nếu khách chưa like thì nó trả về null chứ không báo lỗi đỏ lòm nữa!
+          
         if (data) setIsLiked(true);
       };
       checkLike();
     }
-  }, [authSupabase, user, phim?.id]);
+  }, [isActive, authSupabase, user, phim?.id]); // Thêm isActive vào mỏ neo
 
   // 🛡️ Đã sửa: Dùng authSupabase để lưu lịch sử & tăng view
   useEffect(() => {
