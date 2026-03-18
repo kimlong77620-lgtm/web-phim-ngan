@@ -38,7 +38,7 @@ export default function ContactIcons() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-[9999]">
+    <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-9999">
       {/* NÚT CÀI APP - ICON MŨI TÊN + GẠCH NGANG TỐI GIẢN */}
       {showInstall && (
         <button

@@ -31,7 +31,7 @@ export default function InstallGuide() {
   if (!showIOSPrompt) return null;
 
   return (
-    <div className="fixed bottom-8 left-4 right-4 z-[9999] bg-[#1a1f2e]/95 backdrop-blur-xl border border-yellow-500/30 p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-8 fade-in duration-500">
+    <div className="fixed bottom-8 left-4 right-4 z-9999 bg-[#1a1f2e]/95 backdrop-blur-xl border border-yellow-500/30 p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom-8 fade-in duration-500">
       <div className="flex items-start gap-3">
         <div className="bg-yellow-500 p-2 rounded-xl shadow-lg border-2 border-yellow-400">
           <img src="/logo.jpg" alt="Zhaodi Logo" className="w-8 h-8 rounded-md object-cover" />
