@@ -35,8 +35,8 @@ export default function PhimPage({ params }: { params: { id: string } }) {
     fetchPhim();
   }, [params.id, authSupabase]); // Cực kỳ an toàn, không bao giờ lặp vô hạn
 
-  if (loading) return <div className="h-[100dvh] bg-black text-yellow-500 font-bold flex items-center justify-center">Đang tải phim...</div>;
-  if (!phim) return <div className="h-[100dvh] bg-black text-red-500 font-bold flex items-center justify-center">Lỗi: Phim không tồn tại hoặc đã bị xóa.</div>;
+  if (loading) return <div className="h-dvh bg-black text-yellow-500 font-bold flex items-center justify-center">Đang tải phim...</div>;
+  if (!phim) return <div className="h-dvh bg-black text-red-500 font-bold flex items-center justify-center">Lỗi: Phim không tồn tại hoặc đã bị xóa.</div>;
 
   // 📺 Lấy được phim rồi thì nhét vào Tivi cho nó chiếu!
   return (

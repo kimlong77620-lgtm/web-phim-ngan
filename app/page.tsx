@@ -37,7 +37,7 @@ function DanhSachDayDu({ title, danhSach, onClose, onWatch, type }: { title: str
 
   return (
     <div 
-      className="fixed inset-0 bg-[#0b0f19] z-[80] overflow-y-auto animate-in slide-in-from-right-full duration-300 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="fixed inset-0 bg-[#0b0f19] z-80 overflow-y-auto animate-in slide-in-from-right-full duration-300 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
     >
       <div className="sticky top-0 bg-[#0b0f19]/90 backdrop-blur-xl p-4 flex items-center gap-4 border-b border-gray-800 z-10 shadow-lg">
@@ -50,7 +50,7 @@ function DanhSachDayDu({ title, danhSach, onClose, onWatch, type }: { title: str
       <div className={`p-4 grid ${type === 'ngang' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-2 md:grid-cols-4'} gap-4 pb-24`}>
         {danhSach.map((p) => (
           <div key={p.id} onClick={() => onWatch(p)} className={`group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500 transition-all shadow-lg hover:-translate-y-1`}>
-            <div className={`relative ${type === 'ngang' ? 'aspect-video border-b border-gray-800' : 'aspect-[2/3]'} overflow-hidden`}>
+            <div className={`relative ${type === 'ngang' ? 'aspect-video border-b border-gray-800' : 'aspect-2/3'} overflow-hidden`}>
               <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
               <div className={`absolute top-2 right-2 ${type === 'ngang' ? 'bg-yellow-500 text-black' : 'bg-red-600 text-white'} text-[10px] font-bold px-2 py-1 rounded shadow-lg`}>
                 {type === 'ngang' ? 'TẬP MỚI' : 'FULL'}
@@ -135,9 +135,9 @@ function PhongChieu({ phim: initialPhim, onClose, danhSachToanBo }: { phim: Phim
   };
 
 return (
-    <div className="absolute top-0 left-0 w-full h-[100dvh] bg-black z-[100] overflow-y-scroll snap-y snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onWheel={onWheel}>
+    <div className="absolute top-0 left-0 w-full h-dvh bg-black z-100 overflow-y-scroll snap-y snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onWheel={onWheel}>
       {danhSachToanBo.map((phimItem) => (
-        <div key={phimItem.id} id={`snap-video-${phimItem.id}`} data-id={phimItem.id} className="snap-video-item relative w-full h-[100dvh] snap-start snap-always shrink-0 bg-black">
+        <div key={phimItem.id} id={`snap-video-${phimItem.id}`} data-id={phimItem.id} className="snap-video-item relative w-full h-dvh snap-start snap-always shrink-0 bg-black">
           {phimItem && <TrinhPhatVideo phim={phimItem} isActive={activeId === phimItem.id} onClose={handleClose} />}
         </div>
       ))}
@@ -292,7 +292,7 @@ useEffect(() => {
   if (!user) return (
     <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 text-center">
       <img src="/logo.jpg" className="w-40 h-40 rounded-full border-4 border-yellow-500 mb-12 shadow-2xl" alt="Logo" />
-      <h1 className="text-5xl md:text-7xl font-[900] text-yellow-500 uppercase italic mb-8 tracking-tighter">Xem Phim<br />Không Cần Não</h1>
+      <h1 className="text-5xl md:text-7xl font-black text-yellow-500 uppercase italic mb-8 tracking-tighter">Xem Phim<br />Không Cần Não</h1>
       <SignInButton mode="redirect" forceRedirectUrl="/"><button className="w-full max-w-sm rounded-2xl bg-yellow-500 py-5 text-2xl font-black text-black uppercase shadow-lg hover:scale-105 transition-transform">🚀 Đăng nhập ngay</button></SignInButton>
     </div>
   );
@@ -314,7 +314,7 @@ useEffect(() => {
           <div ref={menuRef} className="relative flex-none">
             <button onClick={() => setShowMenu(!showMenu)} className="bg-gray-800 text-yellow-500 px-4 rounded-2xl border border-gray-700 h-12 flex items-center gap-2 font-bold transition-all active:scale-95 hover:bg-gray-700"><span>☰</span> <span className="hidden sm:inline uppercase">Danh mục</span></button>
             {showMenu && (
-              <div className="absolute top-full left-0 mt-3 w-60 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="absolute top-full left-0 mt-3 w-60 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl z-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
                 <div className="px-5 py-3 text-[10px] font-black text-gray-500 uppercase bg-gray-800/50">🎬 Thể Loại</div>
                 {["Tất cả", "Hệ Thống", "Trọng Sinh", "Xuyên Sách", "Cổ Trang", "Màn Ngang"].map((item, idx) => (
                   <button key={idx} onClick={() => { setTuKhoa(item === "Tất cả" ? "" : item); setShowMenu(false); }} className="w-full text-left px-5 py-3.5 text-sm hover:bg-yellow-500 hover:text-black font-bold border-b border-gray-800/50 transition-colors">{item}</button>
@@ -336,7 +336,7 @@ useEffect(() => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {lichSuXem.map((p) => (
                 <div key={`hist-${p.id}`} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-blue-900/30 hover:border-blue-500 transition-all shadow-lg hover:-translate-y-1">
-                  <div className="relative aspect-[2/3] overflow-hidden">
+                  <div className="relative aspect-2/3 overflow-hidden">
                     <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
                     <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-transparent transition-colors"></div>
                     <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1 border border-white/10">
@@ -368,7 +368,7 @@ useEffect(() => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {phimDoc.slice(0, 4).map((p) => (
                 <div key={p.id} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500 transition-all shadow-lg hover:-translate-y-1">
-                  <div className="relative aspect-[2/3] overflow-hidden">
+                  <div className="relative aspect-2/3 overflow-hidden">
                     <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
                     <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg">FULL</div>
                     <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1 border border-white/10">
@@ -426,7 +426,7 @@ useEffect(() => {
       )}
 
       {showVipModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-md">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-9999 p-4 backdrop-blur-md">
           <div className="bg-[#1a1f2e] p-8 rounded-3xl max-w-sm w-full text-center border-2 border-yellow-500 shadow-2xl relative animate-in zoom-in-95">
             <button onClick={() => setShowVipModal(false)} className="absolute top-4 right-5 text-gray-500 hover:text-white text-xl">✕</button>
             <h2 className="text-3xl font-bold text-yellow-500 mb-6 uppercase italic tracking-tighter">Xem Phim <br/> Không Cần Não</h2>
@@ -438,7 +438,7 @@ useEffect(() => {
                   <p>• <b>Mã Fan:</b> <span className="text-yellow-400 font-bold">{fanId}</span></p>
                   <p className="text-[10px] mt-1 opacity-70">Hệ thống sẽ tự động kích VIP ngay sau khi thanh toán thành công.</p>
                 </div>
-                <button onClick={handleAutoPayment} className="w-full py-4 bg-yellow-600 text-black font-[900] rounded-2xl hover:bg-yellow-500 uppercase shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">🚀 Thanh toán tự động</button>
+                <button onClick={handleAutoPayment} className="w-full py-4 bg-yellow-600 text-black font-black rounded-2xl hover:bg-yellow-500 uppercase shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">🚀 Thanh toán tự động</button>
                 <button onClick={() => setPaymentStep(2)} className="w-full py-2 text-gray-400 text-[11px] font-bold uppercase hover:text-white transition-colors border border-gray-700 rounded-xl">Hoặc chuyển khoản thủ công</button>
               </div>
             ) : (
@@ -451,7 +451,7 @@ useEffect(() => {
                 </div>
                 <div className="flex gap-3">
                   <button onClick={() => setPaymentStep(1)} className="flex-1 py-3 border border-gray-700 text-gray-400 font-bold rounded-xl text-[11px] uppercase hover:bg-gray-800">Quay lại</button>
-                  <button onClick={() => window.location.reload()} className="flex-[2] py-3 bg-yellow-600 text-black font-black rounded-xl uppercase text-xs hover:bg-yellow-500 shadow-lg active:scale-95">Tôi đã chuyển khoản</button>
+                  <button onClick={() => window.location.reload()} className="flex-2 py-3 bg-yellow-600 text-black font-black rounded-xl uppercase text-xs hover:bg-yellow-500 shadow-lg active:scale-95">Tôi đã chuyển khoản</button>
                 </div>
               </div>
             )}
@@ -459,7 +459,7 @@ useEffect(() => {
         </div>
       )}
 
-      <div className="fixed bottom-24 right-4 z-[90] flex flex-col gap-3">
+      <div className="fixed bottom-24 right-4 z-90 flex flex-col gap-3">
         <a href="https://zalo.me/0386027105" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#0068ff] rounded-full flex items-center justify-center shadow-xl border-2 border-white hover:scale-110 transition-transform"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M21.037 8.049c-1.433-3.95-5.917-6.07-10.086-4.717-3.606 1.173-6.19 4.604-6.035 8.361.066 1.956.88 3.75 2.26 5.1L5.7 21.011l4.41-1.574c1.138.356 2.348.536 3.565.536 5.378 0 9.736-4.357 9.736-9.735 0-1.638-.568-2.983-1.41-4.348h-1.065h.09v1.175zm-8.875 5.253H9.422v-3.784c1.71 0 2.225-.047 2.225-1.04v-.09h-3.385v-.873h3.495c.86 0 1.31.396 1.31 1.127v.18c0 .888-.64 1.164-1.503 1.164H9.99v1.92h2.172v1.464zm3.805-1.465h-1.947V9.524h1.947v2.313zm-1.947 1.464V12.01h1.947v1.306h-1.947zm4.05-3.784h-1.413V8.212h1.413v1.306zm.395 2.54c0 .676-.462 1.244-1.09 1.244h-1.302v-3.468h1.302c.628 0 1.09.568 1.09 1.244v.98z"/></svg></a>
         <a href="https://m.me/61585837924317" target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-[#0084FF] rounded-full flex items-center justify-center shadow-xl border-2 border-white hover:scale-110 transition-transform"><svg viewBox="0 0 36 36" fill="white" width="24" height="24"><path d="M18 2C9.163 2 2 8.791 2 17.168c0 4.757 2.41 8.995 6.136 11.838V34l5.6-3.083c1.373.385 2.833.593 4.356.593 8.837 0 16-6.791 16-15.168C34 8.791 26.837 2 18 2zm1.096 20.32-3.411-3.64-6.641 3.64 7.288-7.75 3.504 3.64 6.55-3.64-7.29 7.75z"/></svg></a>
       </div>

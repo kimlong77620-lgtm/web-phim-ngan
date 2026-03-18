@@ -267,7 +267,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   return (
     <div 
       ref={playerContainerRef} 
-      className="relative w-full h-[100dvh] bg-black flex justify-center items-center overflow-hidden" 
+      className="relative w-full h-dvh bg-black flex justify-center items-center overflow-hidden" 
       onMouseMove={resetTimer} 
       onTouchStart={(e) => { resetTimer(); if (isFullscreen) e.stopPropagation(); }}
       onTouchMove={(e) => { if (isFullscreen) e.stopPropagation(); }}
@@ -281,7 +281,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
       <video 
         ref={videoRef} playsInline loop={danhSachTap.length === 1}
-        className="w-full max-h-[100dvh] object-contain z-10" 
+        className="w-full max-h-dvh object-contain z-10" 
         onTimeUpdate={handleTimeUpdate}
       />
       
@@ -292,7 +292,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
             if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
             onClose(); 
           }} 
-          className="pointer-events-auto absolute top-6 left-4 p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-all duration-500 z-[110]"
+          className="pointer-events-auto absolute top-6 left-4 p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-all duration-500 z-110"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
@@ -303,7 +303,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
           {danhSachTap.length > 1 && (
             <div className="relative">
               {showTapMenu && (
-                <div className="absolute right-full mr-4 bottom-0 bg-black/90 rounded-2xl p-4 backdrop-blur-xl shadow-[0_0_25px_rgba(0,0,0,0.8)] w-[260px] max-h-[300px] overflow-y-auto border border-white/10 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="absolute right-full mr-4 bottom-0 bg-black/90 rounded-2xl p-4 backdrop-blur-xl shadow-[0_0_25px_rgba(0,0,0,0.8)] w-65 max-h-75 overflow-y-auto border border-white/10 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <div className="grid grid-cols-4 gap-2">
                     {danhSachTap.map((_, index) => (
                       <button 
@@ -330,7 +330,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
           {qualities.length > 0 && (
             <div className="relative">
               {showQualityMenu && (
-                <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md min-w-[80px]">
+                <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md min-w-20">
                   <button onClick={(e) => { e.stopPropagation(); if(hlsRef.current) hlsRef.current.currentLevel = -1; setCurrentQuality(-1); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === -1 ? 'bg-yellow-500 text-black' : 'text-white'}`}>Auto</button>
                   {qualities.map((q) => (<button key={q.index} onClick={(e) => { e.stopPropagation(); if(hlsRef.current) hlsRef.current.currentLevel = q.index; setCurrentQuality(q.index); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === q.index ? 'bg-yellow-500 text-black' : 'text-white'}`}>{q.label}</button>))}
                 </div>
@@ -380,7 +380,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
         </div>
 
-        <div className="pointer-events-none absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent pt-24 pb-10 px-6 z-40">
+        <div className="pointer-events-none absolute bottom-0 left-0 w-full bg-linear-to-t from-black via-black/80 to-transparent pt-24 pb-10 px-6 z-40">
           <div className="pointer-events-auto flex justify-center items-center gap-14 mb-8">
              <button onClick={(e) => { e.stopPropagation(); resetTimer(); if(videoRef.current) videoRef.current.currentTime -= 10; }} className="text-white/60 hover:text-white transition-all active:scale-75"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg></button>
              <button onClick={togglePlay} className="p-4 bg-white/10 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-all active:scale-90 backdrop-blur-md border border-white/20 shadow-lg">
