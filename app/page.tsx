@@ -398,7 +398,7 @@ useEffect(() => {
                 <div key={p.id} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-red-500 transition-all shadow-lg hover:-translate-y-1">
                   <div className="relative aspect-video overflow-hidden border-b border-gray-800">
                     <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
-                    <div className="absolute top-2 right-2 bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg">TẬP MỚI</div>
+                    <div className="absolute top-2 right-2 bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg">FULL</div>
                     <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-md flex items-center gap-1 border border-white/10">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       <span className="text-[10px] font-bold uppercase">{(p.views_count || 0) >= 1000 ? ((p.views_count || 0) / 1000).toFixed(1).replace('.0', '') + 'k' : p.views_count || 0}</span>
