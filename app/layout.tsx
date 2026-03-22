@@ -15,7 +15,7 @@ export const viewport: Viewport = {
   userScalable: false, 
 };
 
-// 2. PHÙ HIỆU SẠP PHIM: Metadata và PWA
+// 2. PHÙ HIỆU SẠP PHIM: Metadata và PWA đã tối ưu cho Facebook
 export const metadata: Metadata = {
   title: "Sạp Zhaodi",
   description: "Sạp phim dịch độc quyền bởi xiaopan0396",
@@ -24,6 +24,29 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Sạp Zhaodi",
+  },
+  // Đã sửa lỗi: images phải nằm trong openGraph và twitter
+  openGraph: {
+    title: "Sạp Zhaodi",
+    description: "Sạp phim dịch độc quyền bởi xiaopan0396",
+    url: "https://www.xemphimkhongcannao.io.vn",
+    siteName: "Sạp Zhaodi",
+    images: [
+      {
+        url: "/logo.jpg", // Đảm bảo có file logo.jpg trong thư mục public nhé lão bản!
+        width: 1200,
+        height: 630,
+        alt: "Sạp Zhaodi - Phim dịch độc quyền",
+      },
+    ],
+    locale: "vi_VN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sạp Zhaodi",
+    description: "Sạp phim dịch độc quyền bởi xiaopan0396",
+    images: ["/logo.jpg"],
   },
 };
 
@@ -55,9 +78,9 @@ export default function RootLayout({
           />
         </head>
         {/* Đảm bảo full màn hình, chống cuộn ngang */}
-        <body className={`${lexend.className} antialiased bg-[#0b0f19] text-white w-full min-h-[100dvh] overflow-x-hidden`}>
+        <body className={`${lexend.className} antialiased bg-[#0b0f19] text-white w-full min-h-dvh overflow-x-hidden`}>
           {isMaintenance ? (
-            <div className="flex flex-col items-center justify-center min-h-[100dvh] text-center p-4">
+            <div className="flex flex-col items-center justify-center min-h-dvh text-center p-4">
               <img src="/logo.jpg" alt="Bảo trì" className="w-24 h-24 rounded-full border-4 border-yellow-500 mb-6 grayscale opacity-50" />
               <h1 className="text-4xl font-black text-yellow-500 mb-4 uppercase tracking-tighter">SẠP ĐANG BẢO TRÌ</h1>
               <p className="text-gray-400 font-medium">Lão bản đang nhập thêm phim mới, chư vị tiên sinh vui lòng quay lại sau nhé!</p>
@@ -65,7 +88,7 @@ export default function RootLayout({
           ) : (
             <>
               {/* Đã dọn dẹp class "relative" và "min-h-screen" để tránh xung đột */}
-              <main className="w-full min-h-[100dvh] flex flex-col">
+              <main className="w-full min-h-dvh flex flex-col">
                 {children}
               </main>
               <InstallGuide />
