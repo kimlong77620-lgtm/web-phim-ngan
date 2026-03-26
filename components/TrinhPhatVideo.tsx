@@ -11,6 +11,9 @@ export interface Phim {
   thumb: string;
   videoSrc?: string;
   video_src?: string;
+  // 🛡️ SỬA 1: Thêm cột link sub vào Interface
+  vtt_vn?: string; 
+  vtt_en?: string;
   views_count?: number;
   likes_count?: number;
 }
@@ -23,7 +26,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   const { user } = useUser();
   const { session } = useSession(); 
 
-  // 🛡️ Tạo client có "thẻ thông hành" để bước qua cửa RLS
   const authSupabase = useMemo(() => {
     return session ? createClerkSupabaseClient(session) : null;
   }, [session]);
@@ -41,7 +43,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1); 
   const [progress, setProgress] = useState(0); 
-  const [isThuyetMinh, setIsThuyetMinh] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showUI, setShowUI] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
@@ -55,11 +56,19 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   const [localLikes, setLocalLikes] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // ==================== TÁCH LINK LÀM PHIM NHIỀU TẬP ====================
+  // 🛡️ State quản lý Ngôn ngữ & Sub
+  const [currentLang, setCurrentLang] = useState<"VI" | "EN">("VI");
+  const [mode, setMode] = useState<"SUB" | "TM">("SUB");
+  const [showLangMenu, setShowLangMenu] = useState(false);
+
   const rawLinks = phim?.video_src || phim?.videoSrc || "";
   const danhSachTap = useMemo(() => {
     return rawLinks.split(",").map(link => link.trim()).filter(link => link.length > 0);
   }, [rawLinks]);
+
+  // 🛡️ SỬA 2: Tách danh sách Sub từ Supabase tương ứng với tập phim
+  const danhSachSubVN = useMemo(() => (phim?.vtt_vn || "").split(",").map(s => s.trim()), [phim?.vtt_vn]);
+  const danhSachSubEN = useMemo(() => (phim?.vtt_en || "").split(",").map(s => s.trim()), [phim?.vtt_en]);
 
   const [tapHienTai, setTapHienTai] = useState(0);
   const [showTapMenu, setShowTapMenu] = useState(false);
@@ -67,23 +76,20 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
 
   useEffect(() => { if (phim?.likes_count !== undefined) setLocalLikes(phim.likes_count); }, [phim?.likes_count]);
 
-// 🛡️ Đã sửa: Thêm isActive (chỉ check khi đang xem) và đổi thành maybeSingle() để hết lỗi 406
   useEffect(() => {
-    if (isActive && authSupabase && user && phim?.id) { // THÊM isActive VÀO ĐÂY!
+    if (isActive && authSupabase && user && phim?.id) { 
       const checkLike = async () => {
-        const { data, error } = await authSupabase
+        const { data } = await authSupabase
           .from('movie_likes')
           .select('*')
           .match({ user_id: user.id, movie_id: phim.id })
-          .maybeSingle(); // ĐỔI THÀNH maybeSingle() - Nếu khách chưa like thì nó trả về null chứ không báo lỗi đỏ lòm nữa!
-          
+          .maybeSingle(); 
         if (data) setIsLiked(true);
       };
       checkLike();
     }
-  }, [isActive, authSupabase, user, phim?.id]); // Thêm isActive vào mỏ neo
+  }, [isActive, authSupabase, user, phim?.id]); 
 
-  // 🛡️ Đã sửa: Dùng authSupabase để lưu lịch sử & tăng view
   useEffect(() => {
     if (isActive && phim?.id && authSupabase) {
       if (user) authSupabase.from('watch_history').upsert({ user_id: user.id, movie_id: phim.id, watched_at: new Date() });
@@ -106,7 +112,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     setShowUI(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      if (isPlaying) { setShowUI(false); setShowVolumeSlider(false); setShowQualityMenu(false); setShowTapMenu(false); }
+      if (isPlaying) { setShowUI(false); setShowVolumeSlider(false); setShowQualityMenu(false); setShowTapMenu(false); setShowLangMenu(false); }
     }, 3500);
   }, [isPlaying]);
 
@@ -120,10 +126,10 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   }, []);
 
   const toggleFullscreen = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    resetTimer();
+    e.stopPropagation(); resetTimer();
     const elem = playerContainerRef.current as any;
     const doc = document as any;
+    if (!elem) return;
 
     if (!isFullscreen) {
       try {
@@ -133,11 +139,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         const screenOrientation = (window.screen as any).orientation;
         if (screenOrientation && screenOrientation.lock && videoRef.current) {
           const isHorizontal = videoRef.current.videoWidth > videoRef.current.videoHeight;
-          const orientationType = isHorizontal ? "landscape" : "portrait";
-          
-          await screenOrientation.lock(orientationType).catch((err: any) => {
-            console.warn("Máy khách đang khóa xoay hệ điều hành:", err);
-          });
+          await screenOrientation.lock(isHorizontal ? "landscape" : "portrait").catch(() => {});
         }
       } catch (err: any) { console.error("Lỗi phóng to:", err); }
     } else {
@@ -148,6 +150,28 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
       } catch (err: any) { console.error("Lỗi thu nhỏ:", err); }
     }
+  };
+
+  // 🛡️ SỬA 3: Fix logic switchLanguage để điều khiển đúng TextTracks (Hết báo đỏ)
+  const switchLanguage = (lang: "VI" | "EN", type: "SUB" | "TM") => {
+    if (!hlsRef.current || !videoRef.current) return;
+    setCurrentLang(lang);
+    setMode(type);
+
+    // Xử lý Audio (0: Gốc, 1: TM Việt, 2: TM Anh)
+    let audioIndex = 0; 
+    if (type === "TM") audioIndex = lang === "VI" ? 1 : 2;
+    hlsRef.current.audioTrack = audioIndex;
+
+    // Xử lý Subtitle bằng TextTracks (Ăn CSS video::cue và giữ vị trí VTT)
+    const tracks = videoRef.current.textTracks;
+    const targetLang = lang === "VI" ? "vi" : "en";
+    
+    for (let i = 0; i < tracks.length; i++) {
+      tracks[i].mode = (tracks[i].language === targetLang) ? 'showing' : 'hidden';
+    }
+
+    setShowLangMenu(false);
   };
 
   useEffect(() => {
@@ -177,6 +201,9 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         const filtered: any[] = []; const seen = new Set();
         for (const q of raw) { if (!seen.has(q.label)) { filtered.push(q); seen.add(q.label); } }
         setQualities(filtered);
+
+        // Khởi tạo mặc định: Vietsub (SV)
+        switchLanguage("VI", "SUB");
       });
 
       hls.on(Hls.Events.ERROR, (e, data) => {
@@ -187,14 +214,33 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         }
       });
 
-      hls.on(Hls.Events.MEDIA_ATTACHED, () => { video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false)); });
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => { 
+        // 🛡️ SỬA 4: Fix lỗi Property 'mode' does not exist (Dùng track.track.mode)
+        video.querySelectorAll('track').forEach(t => t.remove());
+        const addTrack = (src: string, lang: string) => {
+          if (!src) return;
+          const trackElement = document.createElement('track');
+          trackElement.src = src; 
+          trackElement.srclang = lang; 
+          trackElement.kind = 'subtitles';
+          video.appendChild(trackElement); // Append trước
+          trackElement.track.mode = 'hidden'; // Sau đó set mode qua đối tượng .track
+        };
+        addTrack(danhSachSubVN[tapHienTai], 'vi');
+        addTrack(danhSachSubEN[tapHienTai], 'en');
+        video.crossOrigin = "anonymous"; 
+
+        video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false)); 
+      });
+      
       hls.loadSource(finalVideoLink); hls.attachMedia(video);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = finalVideoLink; video.play().then(() => setIsPlaying(true));
+      video.src = finalVideoLink; video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
     return () => { if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null; } };
-  }, [isActive, finalVideoLink, isMobile]);
+  }, [isActive, finalVideoLink, isMobile, tapHienTai]);
 
+  // GIỮ NGUYÊN TOÀN BỘ PHẦN CÒN LẠI DƯỚI ĐÂY (useEffect, Event Handlers, UI Render...)
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -211,8 +257,14 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     if (!video) return;
     const handleStalled = () => { if (hlsRef.current) hlsRef.current.startLoad(); else video.load(); };
     const handleVisibilityChange = () => { if (document.visibilityState === 'visible' && isPlaying && video.paused) video.play().catch(() => {}); };
-    video.addEventListener('stalled', handleStalled); video.addEventListener('waiting', handleStalled); document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => { video.removeEventListener('stalled', handleStalled); video.removeEventListener('waiting', handleStalled); document.removeEventListener('waiting', handleStalled); document.removeEventListener('visibilitychange', handleVisibilityChange); };
+    video.addEventListener('stalled', handleStalled); 
+    video.addEventListener('waiting', handleStalled); 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => { 
+      video.removeEventListener('stalled', handleStalled); 
+      video.removeEventListener('waiting', handleStalled); 
+      document.removeEventListener('visibilitychange', handleVisibilityChange); 
+    };
   }, [isPlaying]);
 
   useEffect(() => { if (videoRef.current) { videoRef.current.volume = volume; videoRef.current.muted = isMuted; } }, [volume, isMuted]);
@@ -225,15 +277,13 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
   }, [isActive]);
 
   const togglePlay = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation(); 
-    resetTimer();
-    if (videoRef.current?.paused) { videoRef.current.play(); setIsPlaying(true); }
+    if (e) e.stopPropagation(); resetTimer();
+    if (videoRef.current?.paused) { videoRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false)); } 
     else { videoRef.current?.pause(); setIsPlaying(false); }
   };
 
   const handleDoubleTap = (e: React.MouseEvent, direction: 'forward' | 'backward') => {
-    e.stopPropagation();
-    if (!videoRef.current) return;
+    e.stopPropagation(); if (!videoRef.current) return;
     videoRef.current.currentTime += direction === 'forward' ? 10 : -10;
     resetTimer();
     const el = e.currentTarget as HTMLElement;
@@ -241,7 +291,6 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     setTimeout(() => el.style.backgroundColor = "transparent", 200);
   };
 
-  // 🛡️ Đã sửa: Dùng authSupabase để Like/Dislike
   const handleLike = async (e: React.MouseEvent) => {
     e.stopPropagation(); resetTimer();
     if (!authSupabase || !user || !phim?.id) return alert("Lão bản ơi, đăng nhập để thả tim nhé!");
@@ -249,8 +298,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
     if (newStatus) { 
       await authSupabase.from('movie_likes').insert({ user_id: user.id, movie_id: phim.id }); 
       await authSupabase.rpc('increment_movie_likes', { m_id: phim.id }); 
-    } 
-    else { 
+    } else { 
       await authSupabase.from('movie_likes').delete().match({ user_id: user.id, movie_id: phim.id }); 
       await authSupabase.rpc('decrement_movie_likes', { m_id: phim.id }); 
     }
@@ -300,6 +348,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
         <div className="pointer-events-auto absolute right-4 bottom-36 flex flex-col gap-5 items-center z-50">
           <button onClick={(e) => { e.stopPropagation(); resetTimer(); const s = [1, 1.25, 1.5, 2, 0.5]; const n = s[(s.indexOf(playbackRate) + 1) % s.length]; setPlaybackRate(n); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg font-bold text-[10px]">{playbackRate}x</button>
 
+          {/* Tập Menu */}
           {danhSachTap.length > 1 && (
             <div className="relative">
               {showTapMenu && (
@@ -318,7 +367,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
                 </div>
               )}
               <button 
-                onClick={(e) => { e.stopPropagation(); setShowTapMenu(!showTapMenu); setShowQualityMenu(false); setShowVolumeSlider(false); }} 
+                onClick={(e) => { e.stopPropagation(); setShowTapMenu(!showTapMenu); setShowQualityMenu(false); setShowVolumeSlider(false); setShowLangMenu(false); }} 
                 className={`w-10 h-10 flex flex-col items-center justify-center rounded-full text-white font-bold transition-all backdrop-blur-md shadow-lg ${showTapMenu ? 'bg-red-600 scale-110' : 'bg-black/50 hover:bg-red-600'}`}
               >
                 <span className="text-[7px] uppercase leading-none opacity-80 mt-1">Tập</span>
@@ -327,6 +376,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
             </div>
           )}
 
+          {/* Quality Menu */}
           {qualities.length > 0 && (
             <div className="relative">
               {showQualityMenu && (
@@ -335,10 +385,11 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
                   {qualities.map((q) => (<button key={q.index} onClick={(e) => { e.stopPropagation(); if(hlsRef.current) hlsRef.current.currentLevel = q.index; setCurrentQuality(q.index); setShowQualityMenu(false); }} className={`text-[11px] font-bold py-1.5 px-2 rounded ${currentQuality === q.index ? 'bg-yellow-500 text-black' : 'text-white'}`}>{q.label}</button>))}
                 </div>
               )}
-              <button onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); setShowVolumeSlider(false); setShowTapMenu(false); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white font-bold text-[9px] uppercase">{currentQuality === -1 ? 'AUTO' : qualities.find(q => q.index === currentQuality)?.label}</button>
+              <button onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); setShowVolumeSlider(false); setShowTapMenu(false); setShowLangMenu(false); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white font-bold text-[9px] uppercase">{currentQuality === -1 ? 'AUTO' : qualities.find(q => q.index === currentQuality)?.label}</button>
             </div>
           )}
 
+          {/* Nút Like */}
           <button onClick={handleLike} className="flex flex-col items-center gap-1">
             <div className={`p-3 rounded-full backdrop-blur-md shadow-lg transition-all ${isLiked ? "bg-red-500 text-white" : "bg-black/50 text-white"}`}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill={isLiked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -346,10 +397,37 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
             <span className="text-[11px] font-black">{localLikes}</span>
           </button>
 
-          <button onClick={(e) => { e.stopPropagation(); resetTimer(); const s = !isThuyetMinh; setIsThuyetMinh(s); if (hlsRef.current) hlsRef.current.audioTrack = s ? 1 : 0; }} className={`w-10 h-10 rounded-full border transition-all backdrop-blur-md flex items-center justify-center ${isThuyetMinh ? "border-yellow-500 bg-yellow-500/30 text-yellow-400" : "border-white/30 bg-black/50 text-white"}`}>
-            <span className="text-[10px] font-extrabold uppercase">{isThuyetMinh ? "TM" : "SUB"}</span>
-          </button>
+          {/* Menu Ngôn ngữ SV/TV/SE/TE */}
+          <div className="relative">
+            {showLangMenu && (
+              <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md min-w-17.5">
+                {[
+                  { l: "VI", m: "SUB", label: "SV" },
+                  { l: "VI", m: "TM", label: "TV" },
+                  { l: "EN", m: "SUB", label: "SE" },
+                  { l: "EN", m: "TM", label: "TE" },
+                ].map((opt) => (
+                  <button 
+                    key={opt.label}
+                    onClick={(e) => { e.stopPropagation(); resetTimer(); switchLanguage(opt.l as any, opt.m as any); }}
+                    className={`text-[11px] font-bold py-1.5 px-2 rounded transition-colors ${currentLang === opt.l && mode === opt.m ? 'bg-yellow-500 text-black' : 'text-white hover:bg-white/10'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowLangMenu(!showLangMenu); setShowVolumeSlider(false); setShowQualityMenu(false); setShowTapMenu(false); }} 
+              className={`w-10 h-10 rounded-full border transition-all backdrop-blur-md flex items-center justify-center ${showLangMenu ? "border-yellow-500 bg-yellow-500/30 text-yellow-400" : "border-white/30 bg-black/50 text-white"}`}
+            >
+              <span className="text-[11px] font-extrabold uppercase">
+                {currentLang === "VI" ? (mode === "SUB" ? "SV" : "TV") : (mode === "SUB" ? "SE" : "TE")}
+              </span>
+            </button>
+          </div>
 
+          {/* Volume Control */}
           <div className="relative">
             {showVolumeSlider && (
               <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl w-10 h-32 flex items-center justify-center backdrop-blur-md">
@@ -360,7 +438,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: {
                 />
               </div>
             )}
-            <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false); setShowTapMenu(false); }} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg">
+            <button onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false); setShowTapMenu(false); setShowLangMenu(false); }} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg">
                 {isMuted || volume === 0 ? ( <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
                 ) : ( <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg> )}
             </button>

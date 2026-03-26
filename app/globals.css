@@ -1,5 +1,5 @@
-/* 🎯 1. Kéo font chữ về trước tiên để không bị giật nháy */
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;700;900&display=swap');
+/* 🎯 1. Kéo font Lexend cho giao diện & Hepta Slab cho Phụ đề */
+@import url('https://fonts.googleapis.com/css2?family=Hepta+Slab:wght@700&family=Lexend:wght@400;700;900&display=swap');
 
 /* 🎯 2. Mặc "long bào" Tailwind v4 */
 @import "tailwindcss";
@@ -16,12 +16,39 @@
     padding: 0;
 
     /* 🎯 3. VŨ KHÍ BÍ MẬT CHO PWA (Cảm giác như App thật) */
-    overscroll-behavior-y: none; /* Chống hiệu ứng kéo nảy (bập bênh) trên iPhone/Android */
-    -webkit-tap-highlight-color: transparent; /* Xóa ô nhấp nháy màu xanh điên rồ khi chạm vào nút trên iOS */
+    overscroll-behavior-y: none; /* Chống hiệu ứng kéo nảy trên iPhone/Android */
+    -webkit-tap-highlight-color: transparent; /* Xóa ô nhấp nháy xanh khi chạm trên iOS */
   }
 
   /* Phủ font chữ xịn cho toàn bộ sạp phim */
   body {
     font-family: 'Lexend', sans-serif;
+  }
+
+  /* ============================================================
+     🎬 BÙA CHÚ PHỤ ĐỀ WEBVTT - CHUẨN SẠP ZHAODI
+     ============================================================ */
+  video::cue {
+    /* Ép font Hepta Slab Bd như hình lão bản gửi */
+    font-family: 'Hepta Slab', serif;
+    font-weight: 700;
+    
+    /* Kích cỡ vừa vặn cho video dọc mobile */
+    font-size: 1.4rem;
+    color: #ffffff;
+    
+    /* "Cash" tô viền đen cực dày (Stroke) để nổi bật trên mọi nền hình */
+    text-shadow: 
+      -2px -2px 0 #000,
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+       0px  3px 4px rgba(0,0,0,0.8);
+       
+    /* Xóa bỏ nền đen mặc định của trình duyệt */
+    background-color: transparent !important;
+    
+    /* Khoảng cách dòng thoáng đãng cho sub 2 dòng */
+    line-height: 1.4;
   }
 }
