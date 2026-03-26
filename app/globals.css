@@ -13,7 +13,7 @@
     color: white;
     margin: 0;
     padding: 0;
-    overscroll-behavior-y: none; /* Chống kéo nảy PWA */
+    overscroll-behavior-y: none;
     -webkit-tap-highlight-color: transparent;
   }
 
@@ -22,15 +22,20 @@
   }
 
   /* ============================================================
-     🎬 PHỤ ĐỀ WEBVTT - VIỀN MẢNH, SIZE VỪA (CHO PHIM DỌC)
+     🎬 PHỤ ĐỀ WEBWTT - FIX LỆCH TÂM & GỌT SIZE
      ============================================================ */
   video::cue {
     font-family: 'Hepta Slab', serif;
     font-weight: 700;
-    font-size: 1.2rem; /* Size thanh thoát cho mobile */
+    
+    /* 1. Gọt size nhỏ lại cho thanh thoát (Dùng vw để tự co giãn) */
+    font-size: 3.2vw; 
     color: #ffffff;
     
-    /* Viền mỏng 1px - 8 hướng sắc nét, không bị "nuốt" chữ */
+    /* 2. FIX LỆCH TÂM: Ép nội dung chữ luôn ở giữa cái hộp 80% */
+    text-align: center !important;
+    
+    /* 3. Viền mỏng 1px - 8 hướng (Giảm độ đậm như lão bản yêu cầu) */
     text-shadow: 
        1px  1px 0 #000, -1px -1px 0 #000,
        1px -1px 0 #000, -1px  1px 0 #000,
@@ -43,12 +48,9 @@
     white-space: pre-wrap;
   }
 
-  /* ============================================================
-     ⏱️ STYLE CHO CỤM THỜI GIAN TRÊN TIMELINE
-     ============================================================ */
-  .time-display {
-    font-family: 'Lexend', sans-serif;
-    font-variant-numeric: tabular-nums; /* Giữ số đứng yên khi nhảy giây */
-    letter-spacing: -0.5px;
+  /* Cố định cho một số trình duyệt cứng đầu (Safari/Chrome Mobile) */
+  video::-webkit-media-text-track-display {
+    text-align: center !important;
+    width: 100% !important;
   }
 }
