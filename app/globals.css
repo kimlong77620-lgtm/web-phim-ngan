@@ -1,54 +1,27 @@
-/* 🎯 1. Kéo font Lexend cho giao diện & Hepta Slab cho Phụ đề */
-@import url('https://fonts.googleapis.com/css2?family=Hepta+Slab:wght@700&family=Lexend:wght@400;700;900&display=swap');
-
-/* 🎯 2. Mặc "long bào" Tailwind v4 */
-@import "tailwindcss";
-
-@layer base {
-  html, body {
-    /* Ép sạp phim phải rộng bằng đúng màn hình, diệt tận gốc lỗi trượt ngang */
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden; 
-    background-color: #0b0f19;
-    color: white;
-    margin: 0;
-    padding: 0;
-
-    /* 🎯 3. VŨ KHÍ BÍ MẬT CHO PWA (Cảm giác như App thật) */
-    overscroll-behavior-y: none; /* Chống hiệu ứng kéo nảy trên iPhone/Android */
-    -webkit-tap-highlight-color: transparent; /* Xóa ô nhấp nháy xanh khi chạm trên iOS */
-  }
-
-  /* Phủ font chữ xịn cho toàn bộ sạp phim */
-  body {
-    font-family: 'Lexend', sans-serif;
-  }
-
-  /* ============================================================
-     🎬 BÙA CHÚ PHỤ ĐỀ WEBVTT - CHUẨN SẠP ZHAODI
+/* ============================================================
+     🎬 BÙA CHÚ PHỤ ĐỀ WEBVTT - BẢN FIX KHỚP HARDSUB
      ============================================================ */
   video::cue {
-    /* Ép font Hepta Slab Bd như hình lão bản gửi */
+    /* 1. Font xịn lão bản chọn */
     font-family: 'Hepta Slab', serif;
     font-weight: 700;
     
-    /* Kích cỡ vừa vặn cho video dọc mobile */
-    font-size: 1.4rem;
+    /* 2. Tăng nhẹ size để cân bằng với video dọc (Mobile) */
+    font-size: 1.5rem; 
     color: #ffffff;
     
-    /* "Cash" tô viền đen cực dày (Stroke) để nổi bật trên mọi nền hình */
+    /* 3. NÂNG CẤP: "Vũ khí" 8 hướng shadow giúp viền đen bao quanh cực mịn và dày */
+    /* Nó tạo cảm giác chữ có viền (outline) thật sự thay vì chỉ là bóng đổ */
     text-shadow: 
-      -2px -2px 0 #000,
-       2px -2px 0 #000,
-      -2px  2px 0 #000,
-       2px  2px 0 #000,
-       0px  3px 4px rgba(0,0,0,0.8);
+       2px  2px 0 #000, -2px -2px 0 #000,
+       2px -2px 0 #000, -2px  2px 0 #000,
+       1px  1px 0 #000, -1px -1px 0 #000,
+       1px -1px 0 #000, -1px  1px 0 #000,
+       0px  4px 6px rgba(0,0,0,0.9); /* Đổ bóng sâu phía dưới */
        
-    /* Xóa bỏ nền đen mặc định của trình duyệt */
     background-color: transparent !important;
     
-    /* Khoảng cách dòng thoáng đãng cho sub 2 dòng */
-    line-height: 1.4;
+    /* 4. Đảm bảo chữ luôn nằm giữa và không bị dính lẹo */
+    line-height: 1.3;
+    white-space: pre-wrap; /* Quan trọng: Giữ nguyên xuống dòng nếu lão bản có ngắt dòng trong VTT */
   }
-}
