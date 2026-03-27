@@ -22,35 +22,24 @@
   }
 
   /* ============================================================
-     🎬 PHỤ ĐỀ WEBWTT - FIX LỆCH TÂM & GỌT SIZE
+     🎬 PHỤ ĐỀ WEBVTT - BẢN DỌN DẸP NHƯỜNG SÂN CHO VTT
      ============================================================ */
   video::cue {
+    /* Chỉ giữ lại phông chữ cơ bản làm nền (phòng hờ file cũ) */
     font-family: 'Hepta Slab', serif;
     font-weight: 700;
-    
-    /* 1. Gọt size nhỏ lại cho thanh thoát (Dùng vw để tự co giãn) */
-    font-size: 3.2vw; 
     color: #ffffff;
     
-    /* 2. FIX LỆCH TÂM: Ép nội dung chữ luôn ở giữa cái hộp 80% */
-    text-align: center !important;
-    
-    /* 3. Viền mỏng 1px - 8 hướng (Giảm độ đậm như lão bản yêu cầu) */
-    text-shadow: 
-       1px  1px 0 #000, -1px -1px 0 #000,
-       1px -1px 0 #000, -1px  1px 0 #000,
-       0.5px  0.5px 0 #000, -0.5px -0.5px 0 #000,
-       0.5px -0.5px 0 #000, -0.5px  0.5px 0 #000,
-       0px 2px 4px rgba(0,0,0,0.8);
-       
-    background-color: transparent !important;
+    /* XÓA BỎ font-size và text-shadow ở đây để VTT tự quyết định */
+    /* XÓA BỎ các đuôi !important để không cản đường VTT */
+    background-color: transparent;
     line-height: 1.3;
     white-space: pre-wrap;
   }
 
-  /* Cố định cho một số trình duyệt cứng đầu (Safari/Chrome Mobile) */
+  /* Vẫn giữ cái này để trị bệnh lệch tâm trên Safari/Chrome Mobile cứng đầu */
   video::-webkit-media-text-track-display {
-    text-align: center !important;
-    width: 100% !important;
+    text-align: center;
+    width: 100%;
   }
 }
