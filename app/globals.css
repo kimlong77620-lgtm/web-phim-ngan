@@ -22,15 +22,15 @@
   }
 
   /* ============================================================
-     🎬 PHỤ ĐỀ WEBVTT - QUẢN LÝ TẬP TRUNG (ĐÃ FIX LỖI NHỎ CHỮ)
+     🎬 PHỤ ĐỀ WEBVTT - QUẢN LÝ TẬP TRUNG (ĐÃ FIX LỖI NHỎ CHỮ MOBILE)
      ============================================================ */
   video::cue {
     font-family: 'Hepta Slab', serif;
     font-weight: 700;
     
-    /* Dùng vmin (viewport minimum) giúp chữ tự động scale mượt mà 
-       trên cả điện thoại (xoay dọc/ngang) và PC */
-    font-size: 3.5vmin; 
+    /* 🔥 CHỈ SỬA DÒNG NÀY: Ép font chữ không được nhỏ hơn 24px trên điện thoại 
+       và tự động giãn ra to nhất là 45px trên máy tính */
+    font-size: clamp(24px, 7vw, 45px) !important; 
     
     color: #ffffff;
     
