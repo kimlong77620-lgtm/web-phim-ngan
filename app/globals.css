@@ -22,19 +22,20 @@
   }
 
   /* ============================================================
-     🎬 PHỤ ĐỀ WEBVTT - QUẢN LÝ TẬP TRUNG (ĐÃ FIX LỖI NHỎ CHỮ MOBILE)
+     🎬 PHỤ ĐỀ WEBVTT - BẢN THU NHỎ 50% NHƯ Ý LÃO BẢN
      ============================================================ */
   video::cue {
     font-family: 'Hepta Slab', serif;
     font-weight: 700;
     
-    /* 🔥 CHỈ SỬA DÒNG NÀY: Ép font chữ không được nhỏ hơn 24px trên điện thoại 
-       và tự động giãn ra to nhất là 45px trên máy tính */
-    font-size: clamp(20px, 7vw, 45px) !important; 
+    /* 🔥 ĐÃ CHIA ĐÔI KÍCH THƯỚC 🔥 
+       Giảm từ clamp(24px, 7vw, 45px) xuống mức này:
+       Tối thiểu 14px (mobile), scale theo 3.5vw, Tối đa 24px (PC) */
+    font-size: clamp(14px, 3.5vw, 24px) !important; 
     
     color: #ffffff;
     
-    /* Dàn text-shadow viền đen chống chìm chữ lấy từ cấu hình của lão bản */
+    /* Dàn text-shadow viền đen chống chìm chữ */
     text-shadow: 
        0.5px  0.5px 0 #000, -0.5px -0.5px 0 #000,
        0.5px -0.5px 0 #000, -0.5px  0.5px 0 #000,
@@ -42,7 +43,6 @@
        0.25px -0.25px 0 #000, -0.25px  0.25px 0 #000,
        0px 2px 4px rgba(0,0,0,0.8);
        
-    /* Ép buộc nền trong suốt, đè mọi CSS thừa của trình duyệt */
     background-color: transparent !important;
     line-height: 1.3;
     white-space: pre-wrap;
