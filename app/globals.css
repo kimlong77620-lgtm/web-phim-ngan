@@ -30,7 +30,7 @@
     
     /* 🔥 CHỈ SỬA DÒNG NÀY: Ép font chữ không được nhỏ hơn 24px trên điện thoại 
        và tự động giãn ra to nhất là 45px trên máy tính */
-    font-size: clamp(24px, 7vw, 45px) !important; 
+    font-size: clamp(20px, 7vw, 45px) !important; 
     
     color: #ffffff;
     
