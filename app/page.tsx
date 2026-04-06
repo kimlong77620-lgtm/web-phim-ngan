@@ -1,23 +1,23 @@
 "use client";
-import { SignInButton, UserButton, useUser, useSession } from "@clerk/nextjs"; // 1. Thêm useSession
-import { useState, useRef, useEffect, useCallback, useMemo } from "react"; // Thêm useMemo
-import { createClerkSupabaseClient } from "@/lib/supabase"; // 2. Đổi sang hàm tạo client có thẻ
+import { SignInButton, UserButton, useUser, useSession } from "@clerk/nextjs"; 
+import { useState, useRef, useEffect, useCallback, useMemo } from "react"; 
+import { createClerkSupabaseClient } from "@/lib/supabase"; 
 import TrinhPhatVideo from '@/components/TrinhPhatVideo';
 
 // 1. KIỂU DỮ LIỆU
-interface Phim {
+export interface Phim {
   id: number;
   title: string;
   thumb: string;
   videoSrc?: string;
   video_src?: string;
-  theLoai: string[];
-  dienVien: string[];
+  theLoai?: string[];
+  dienVien?: string[];
   views_count?: number;
   likes_count?: number;
 }
 
-// 2. TRANG DANH SÁCH MỞ RỘNG (Trượt ngang & Vuốt để thoát)
+// 2. TRANG DANH SÁCH MỞ RỘNG
 function DanhSachDayDu({ title, danhSach, onClose, onWatch, type }: { title: string, danhSach: Phim[], onClose: () => void, onWatch: (p: Phim) => void, type: "doc" | "ngang" }) {
   const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
   const [touchEnd, setTouchEnd] = useState<{ x: number, y: number } | null>(null);
@@ -59,11 +59,6 @@ function DanhSachDayDu({ title, danhSach, onClose, onWatch, type }: { title: str
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 <span className="text-[10px] font-bold uppercase">{(p.views_count || 0) >= 1000 ? ((p.views_count || 0) / 1000).toFixed(1).replace('.0', '') + 'k' : p.views_count || 0}</span>
               </div>
-              {type === 'ngang' && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-                  <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center pl-1 shadow-[0_0_15px_rgba(220,38,38,0.5)]"><svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div>
-                </div>
-              )}
             </div>
             <div className="p-3">
               <h3 className={`font-semibold line-clamp-2 transition-colors ${type === 'ngang' ? 'text-[15px] group-hover:text-red-400' : 'text-sm group-hover:text-yellow-400'}`}>{p.title}</h3>
@@ -75,7 +70,7 @@ function DanhSachDayDu({ title, danhSach, onClose, onWatch, type }: { title: str
   );
 }
 
-// 3. PHÒNG CHIẾU (ĐÃ TÍCH HỢP CẢM BIẾN LĂN CHUỘT PC)
+// 3. PHÒNG CHIẾU
 function PhongChieu({ phim: initialPhim, onClose, danhSachToanBo }: { phim: Phim; onClose: () => void; danhSachToanBo: Phim[]; }) {
   const [activeId, setActiveId] = useState(initialPhim.id);
   const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
@@ -145,7 +140,7 @@ return (
   );
 } 
 
-// 4. TRANG CHỦ (SẢNH CHÍNH)
+// 4. TRANG CHỦ
 export default function Home() {
   const [danhSachPhim, setDanhSachPhim] = useState<Phim[]>([]);
   const [lichSuXem, setLichSuXem] = useState<Phim[]>([]);
@@ -153,7 +148,7 @@ export default function Home() {
   const [tuKhoa, setTuKhoa] = useState("");
   const [showMenu, setShowMenu] = useState(false);
   const { user, isLoaded } = useUser();
-  const { session } = useSession(); // 3. Lấy session
+  const { session } = useSession(); 
   const [isVip, setIsVip] = useState(false);
   const [isExperienceMode, setIsExperienceMode] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
@@ -162,7 +157,6 @@ export default function Home() {
   const [copiedField, setCopiedField] = useState(""); 
   const [loadingPhim, setLoadingPhim] = useState(true);
 
-  // 🛡️ Tạo client có "thẻ thông hành" để bước qua cửa RLS
   const authSupabase = useMemo(() => {
     return session ? createClerkSupabaseClient(session) : null;
   }, [session]);
@@ -190,39 +184,33 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showMenu]);
 
-  // 🛡️ Đã sửa: Dùng authSupabase để fetch phim & lịch sử
-useEffect(() => {
+  useEffect(() => {
     async function fetchData() {
-      // 1. Nếu chưa load xong Clerk thì cứ đợi tí
       if (!isLoaded) return;
-
-      // 2. Nếu không có authSupabase hoặc không có user thì tắt Loading luôn để hiện trang Login
       if (!authSupabase || !user) {
         setLoadingPhim(false);
         return;
       }
-
       try {
-        // Lấy danh sách phim
         const { data: movies } = await authSupabase.from('movies').select('*').order('id', { ascending: false });
         if (movies) setDanhSachPhim(movies);
-        
-        // Lấy lịch sử xem (Vẫn giữ nguyên logic cũ của lão bản)
-        const { data: historyData } = await authSupabase.from('watch_history').select('movies(*)').eq('user_id', user.id).order('watched_at', { ascending: false }).limit(4);
-        if (historyData) {
-          const validHistory = historyData.map((h: any) => h.movies).filter((m: any) => m !== null);
-          setLichSuXem(validHistory);
-        }
       } catch (err) {
         console.error("Lỗi múc dữ liệu:", err);
       } finally {
-        // 🎯 CÚ CHỐT: Dù thành công hay lỗi thì cũng phải tắt Loading cho lão bản vào sạp!
         setLoadingPhim(false);
       }
     }
     fetchData();
-// 🛡️ Đã xóa phimDangXem để chống lặp vô hạn, cứu rỗi băng thông
   }, [user?.id, isLoaded, !!authSupabase]);
+
+  // 🛡️ Đọc Lịch sử xem từ LocalStorage
+  useEffect(() => {
+    if (danhSachPhim.length > 0) {
+      const historyIds = JSON.parse(localStorage.getItem('watch_history') || '[]');
+      const historyMovies = historyIds.map((id: number) => danhSachPhim.find(p => p.id === id)).filter(Boolean);
+      setLichSuXem(historyMovies.slice(0, 4));
+    }
+  }, [danhSachPhim, phimDangXem]);
 
   const handleCopy = (t: string, f: string) => { 
     navigator.clipboard.writeText(t); 
@@ -235,11 +223,9 @@ useEffect(() => {
     else setShowVipModal(true);
   };
 
-  // 🛡️ Đã sửa: Dùng authSupabase để đồng bộ profile
   useEffect(() => {
     async function sync() {
       if (!user || !authSupabase) return; 
-      // 🎯 SỬA CHỖ 1 Ở ĐÂY (maybeSingle)
       const { data } = await authSupabase.from('profiles').select('fan_id').eq('id', user.id).maybeSingle();
       let fid = data?.fan_id || Math.floor(100000 + Math.random() * 900000).toString();
       setFanId(fid);
@@ -248,15 +234,12 @@ useEffect(() => {
     sync();
   }, [user, authSupabase]); 
 
-  // 🛡️ Đã sửa: Dùng authSupabase để check VIP & Experience Mode
   useEffect(() => {
     const check = async () => {
       if (!authSupabase) return;
-      // 🎯 SỬA CHỖ 2 Ở ĐÂY (maybeSingle)
       const { data: s } = await authSupabase.from('settings').select('is_experience_mode').limit(1).maybeSingle();
       if (s) setIsExperienceMode(s.is_experience_mode);
       if (user) {
-        // 🎯 SỬA CHỖ 3 Ở ĐÂY (maybeSingle)
         const { data: p } = await authSupabase.from('profiles').select('is_vip').eq('id', user.id).maybeSingle();
         if (p) setIsVip(p.is_vip);
       }
@@ -293,7 +276,7 @@ useEffect(() => {
     <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 text-center">
       <img src="/logo.jpg" className="w-40 h-40 rounded-full border-4 border-yellow-500 mb-12 shadow-2xl" alt="Logo" />
       <h1 className="text-5xl md:text-7xl font-black text-yellow-500 uppercase italic mb-8 tracking-tighter">Xem Phim<br />Không Cần Não</h1>
-      <SignInButton mode="redirect" forceRedirectUrl="/"><button className="w-full max-w-sm rounded-2xl bg-yellow-500 py-5 text-2xl font-black text-black uppercase shadow-lg hover:scale-105 transition-transform">🚀 Đăng nhập ngay</button></SignInButton>
+      <SignInButton mode="modal"><button className="w-full max-w-sm rounded-2xl bg-yellow-500 py-5 text-2xl font-black text-black uppercase shadow-lg hover:scale-105 transition-transform">🚀 Đăng nhập ngay</button></SignInButton>
     </div>
   );
 
@@ -307,7 +290,21 @@ useEffect(() => {
             <img src="/logo.jpg" className="w-12 h-12 rounded-full border-2 border-yellow-500" alt="Logo Mini" />
             <h1 className="text-xl md:text-2xl font-black text-yellow-500 uppercase italic leading-tight tracking-tighter">Xem Phim <br/> Không Cần Não</h1>
           </div>
-          <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10 border-2 border-yellow-500" } }} />
+          
+          {/* 🛡️ Huy hiệu VIP */}
+          <div className="flex items-center gap-3 bg-gray-900/50 p-1.5 pr-3 rounded-full border border-gray-800">
+            <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10 border-2 border-yellow-500" } }} />
+            {isVip ? (
+              <div className="flex items-center gap-1">
+                <span className="text-lg">👑</span>
+                <span className="text-yellow-500 font-black text-xs uppercase tracking-wider">VIP</span>
+              </div>
+            ) : (
+              <button onClick={() => setShowVipModal(true)} className="bg-gradient-to-r from-yellow-600 to-yellow-500 text-black text-[10px] font-black px-3 py-1.5 rounded-full uppercase hover:scale-105 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+                Nâng cấp VIP
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto flex gap-2 relative z-50">
@@ -426,7 +423,7 @@ useEffect(() => {
       )}
 
       {showVipModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-9999 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-md">
           <div className="bg-[#1a1f2e] p-8 rounded-3xl max-w-sm w-full text-center border-2 border-yellow-500 shadow-2xl relative animate-in zoom-in-95">
             <button onClick={() => setShowVipModal(false)} className="absolute top-4 right-5 text-gray-500 hover:text-white text-xl">✕</button>
             <h2 className="text-3xl font-bold text-yellow-500 mb-6 uppercase italic tracking-tighter">Xem Phim <br/> Không Cần Não</h2>
@@ -465,4 +462,4 @@ useEffect(() => {
       </div>
     </main>
   );
-}// Chuyển nhà sang Sing
+}
