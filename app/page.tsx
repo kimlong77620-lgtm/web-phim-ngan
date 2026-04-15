@@ -300,7 +300,7 @@ export default function Home() {
                 <span className="text-yellow-500 font-black text-xs uppercase tracking-wider">VIP</span>
               </div>
             ) : (
-              <button onClick={() => setShowVipModal(true)} className="bg-gradient-to-r from-yellow-600 to-yellow-500 text-black text-[10px] font-black px-3 py-1.5 rounded-full uppercase hover:scale-105 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+              <button onClick={() => setShowVipModal(true)} className="bg-linear-to-r from-yellow-600 to-yellow-500 text-black text-[10px] font-black px-3 py-1.5 rounded-full uppercase hover:scale-105 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.4)]">
                 Nâng cấp VIP
               </button>
             )}
@@ -423,7 +423,7 @@ export default function Home() {
       )}
 
       {showVipModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] p-4 backdrop-blur-md">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-9999 p-4 backdrop-blur-md">
           <div className="bg-[#1a1f2e] p-8 rounded-3xl max-w-sm w-full text-center border-2 border-yellow-500 shadow-2xl relative animate-in zoom-in-95">
             <button onClick={() => setShowVipModal(false)} className="absolute top-4 right-5 text-gray-500 hover:text-white text-xl">✕</button>
             <h2 className="text-3xl font-bold text-yellow-500 mb-6 uppercase italic tracking-tighter">Xem Phim <br/> Không Cần Não</h2>

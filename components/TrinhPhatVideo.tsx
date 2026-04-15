@@ -290,14 +290,16 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
       </div>
       <video ref={videoRef} playsInline loop={danhSachTap.length === 1} className="w-full max-h-dvh object-contain z-10" onTimeUpdate={handleTimeUpdate} />
       <div className={`absolute inset-0 z-30 pointer-events-none transition-opacity duration-500 ${showUI ? 'opacity-100' : 'opacity-0'}`}>
-        <button onClick={(e) => { e.stopPropagation(); if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); onClose(); }} className="pointer-events-auto absolute top-6 left-4 p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-all duration-500 z-110"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button onClick={(e) => { e.stopPropagation(); if (document.fullscreenElement) document.exitFullscreen().catch(()=>{}); onClose(); }} className="pointer-events-auto absolute top-6 left-4 p-2.5 bg-black/40 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-all duration-500 z-[110]"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
         <div className="pointer-events-auto absolute right-4 bottom-36 flex flex-col gap-5 items-center z-50">
           <button onClick={(e) => { e.stopPropagation(); resetTimer(); const s = [1, 1.25, 1.5, 2, 0.5]; const n = s[(s.indexOf(playbackRate) + 1) % s.length]; setPlaybackRate(n); }} className="w-10 h-10 flex items-center justify-center bg-black/50 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-colors backdrop-blur-md shadow-lg font-bold text-[10px]">{playbackRate}x</button>
+          
+          {/* SỬA LỖI 2: BẢNG CHỌN TẬP BỊ TRÀN */}
           {danhSachTap.length > 1 && (
             <div className="relative">
               {showTapMenu && (
-                <div className="absolute right-full mr-4 bottom-0 bg-black/90 rounded-2xl p-4 backdrop-blur-xl shadow-[0_0_25px_rgba(0,0,0,0.8)] w-65 max-h-75 overflow-y-auto border border-white/10 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <div className="grid grid-cols-4 gap-2">
+                <div className="absolute right-0 bottom-full mb-4 bg-black/95 rounded-2xl p-4 backdrop-blur-xl shadow-[0_0_25px_rgba(0,0,0,0.8)] w-[280px] max-h-[50vh] overflow-y-auto overscroll-contain border border-white/10 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden z-[100] pointer-events-auto">
+                  <div className="grid grid-cols-5 gap-2">
                     {danhSachTap.map((_, index) => (<button key={index} onClick={(e) => { e.stopPropagation(); setTapHienTai(index); setShowTapMenu(false); }} className={`text-[12px] font-black py-2.5 rounded-xl transition-all active:scale-95 ${tapHienTai === index ? 'bg-red-600 text-white shadow-lg' : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white border border-white/5'}`}>{index + 1}</button>))}
                   </div>
                 </div>
@@ -305,6 +307,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
               <button onClick={(e) => { e.stopPropagation(); setShowTapMenu(!showTapMenu); setShowQualityMenu(false); setShowVolumeSlider(false); setShowLangMenu(false); }} className={`w-10 h-10 flex flex-col items-center justify-center rounded-full text-white font-bold transition-all backdrop-blur-md shadow-lg ${showTapMenu ? 'bg-red-600 scale-110' : 'bg-black/50 hover:bg-red-600'}`}><span className="text-[7px] uppercase leading-none opacity-80 mt-1">Tập</span><span className="text-[12px] leading-none">{tapHienTai + 1}</span></button>
             </div>
           )}
+          
           {qualities.length > 0 && (
             <div className="relative">
               {showQualityMenu && (
@@ -339,11 +342,24 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
           <button onClick={handleCopy} className={`p-3 rounded-full transition-colors backdrop-blur-md shadow-lg ${isCopied ? "bg-green-500 text-white" : "bg-black/50 text-white"}`}>{isCopied ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"></polyline></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>}</button>
           <button onClick={toggleFullscreen} className="p-3 bg-black/50 rounded-full text-white backdrop-blur-md shadow-lg hover:bg-yellow-500 hover:text-black transition-colors mt-2">{isFullscreen ? (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>) : (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>)}</button>
         </div>
+        
+        {/* SỬA LỖI 1: THÊM NÚT CHUYỂN TẬP */}
         <div className="pointer-events-none absolute bottom-0 left-0 w-full bg-linear-to-t from-black via-black/80 to-transparent pt-24 pb-10 px-6 z-40">
-          <div className="pointer-events-auto flex justify-center items-center gap-14 mb-8">
+          <div className="pointer-events-auto flex justify-center items-center gap-8 sm:gap-14 mb-8 relative w-full max-w-md mx-auto">
              <button onClick={(e) => { e.stopPropagation(); resetTimer(); if(videoRef.current) videoRef.current.currentTime -= 10; }} className="text-white/60 hover:text-white transition-all active:scale-75"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg></button>
              <button onClick={togglePlay} className="p-4 bg-white/10 rounded-full text-white hover:bg-yellow-500 hover:text-black transition-all active:scale-90 backdrop-blur-md border border-white/20 shadow-lg">{isPlaying ? (<svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>) : (<svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>)}</button>
              <button onClick={(e) => { e.stopPropagation(); resetTimer(); if(videoRef.current) videoRef.current.currentTime += 10; }} className="text-white/60 hover:text-white transition-all active:scale-75"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg></button>
+             
+             {/* Nút Next Tập (Chỉ hiện khi chưa phải tập cuối) */}
+             {tapHienTai < danhSachTap.length - 1 && (
+               <button 
+                 onClick={(e) => { e.stopPropagation(); resetTimer(); setTapHienTai(prev => prev + 1); }} 
+                 className="absolute right-4 sm:right-0 text-white/60 hover:text-white transition-all active:scale-75"
+                 title="Tập tiếp theo"
+               >
+                 <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+               </button>
+             )}
           </div>
           <div className="pointer-events-auto flex items-center gap-3 w-full">
             <span className="text-white/90 text-[11px] font-mono">{formatTime(videoRef.current?.currentTime || 0)}</span>
