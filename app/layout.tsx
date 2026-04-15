@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from '@clerk/nextjs';
 import { Lexend } from 'next/font/google'; 
-import "./globals.css";
+import "@/app/globals.css";
 import InstallGuide from '@/components/InstallGuide';
 
 const lexend = Lexend({ subsets: ['latin'], weight: ['400', '700', '900'] });
