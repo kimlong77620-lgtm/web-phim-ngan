@@ -28,8 +28,8 @@
     font-family: 'Hepta Slab', serif;
     font-weight: 700;
     
-    /* Kích thước cho màn hình dọc (nhỏ hơn bản cũ 1 chút) */
-    font-size: clamp(12px, 3vw, 20px) !important; 
+    /* 🔥 Kích thước cho màn hình dọc (Đã tăng lên 1 cỡ) 🔥 */
+    font-size: clamp(14px, 3.5vw, 24px) !important; 
     
     color: #ffffff;
     text-shadow: 
@@ -43,10 +43,9 @@
     white-space: pre-wrap;
   }
 
-  /* 🔥 ĐÃ THU NHỎ CHỮ THÊM NỮA CHO MÀN HÌNH NGANG 🔥 */
+  /* KÍCH THƯỚC CHỮ CHO MÀN HÌNH NGANG (Giữ nguyên) */
   @media (orientation: landscape) {
     video::cue {
-      /* Ép size cực nhỏ: Tối thiểu 10px, scale theo 2.5vh, tối đa 16px */
       font-size: clamp(10px, 2.5vh, 16px) !important; 
     }
   }
