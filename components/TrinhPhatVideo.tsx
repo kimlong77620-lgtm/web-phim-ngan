@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Hls from "hls.js";
+import NoSleep from "nosleep.js";
 import { createClerkSupabaseClient } from "@/lib/supabase"; 
 import { useUser, useSession } from "@clerk/nextjs"; 
 
@@ -18,7 +19,16 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const wakeLockRef = useRef<any>(null);
+  const noSleepRef = useRef<NoSleep | null>(null);
+
+  useEffect(() => {
+    noSleepRef.current = new NoSleep();
+    return () => {
+      if (noSleepRef.current) {
+        noSleepRef.current.disable();
+      }
+    };
+  }, []);
 
   const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -59,11 +69,18 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
   };
 
   const requestWakeLock = async () => {
-    try { if ('wakeLock' in navigator) wakeLockRef.current = await (navigator as any).wakeLock.request('screen'); } 
-    catch (err) { console.log(err); }
+    try {
+      if (noSleepRef.current && !noSleepRef.current.isEnabled) {
+        noSleepRef.current.enable();
+      }
+    } catch (err) { console.log(err); }
   };
   const releaseWakeLock = () => {
-    if (wakeLockRef.current) { wakeLockRef.current.release().catch(()=>{}); wakeLockRef.current = null; }
+    try {
+      if (noSleepRef.current && noSleepRef.current.isEnabled) {
+        noSleepRef.current.disable();
+      }
+    } catch (err) {}
   };
 
   useEffect(() => {
@@ -161,7 +178,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
     const tracks = videoRef.current.textTracks;
     const targetLang = lang === "VI" ? "vi" : "en";
     for (let i = 0; i < tracks.length; i++) {
-      tracks[i].mode = (tracks[i].language === targetLang) ? 'showing' : 'hidden';
+        tracks[i].mode = (tracks[i].language === targetLang) ? 'showing' : 'hidden';
     }
     setShowLangMenu(false);
   };
@@ -228,10 +245,62 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const handleStalled = () => { if (hlsRef.current) hlsRef.current.startLoad(); else video.load(); };
+
+    // Cập nhật trạng thái play/pause khi bị hệ thống can thiệp (như tắt màn hình iPhone)
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    // Khôi phục thời gian xem
+    const handleLoadedMetadata = () => {
+      try {
+        const savedProgress = JSON.parse(localStorage.getItem('watch_progress') || '{}');
+        const savedTime = savedProgress[`${phim.id}_${tapHienTai}`] || 0;
+        // Nếu đã xem trên 5s và chưa hết video thì tự động nhảy tới đoạn đó
+        if (savedTime > 5 && video.duration > 0 && savedTime < video.duration - 5) {
+          video.currentTime = savedTime;
+        }
+      } catch (err) {}
+    };
+
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [phim?.id, tapHienTai]);
+
+  // Lưu tiến trình xem mỗi 5 giây mà không gọi database
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isPlaying && isActive) {
+      interval = setInterval(() => {
+        if (videoRef.current) {
+          const time = videoRef.current.currentTime;
+          if (time > 5) { // Bắt đầu lưu khi coi được trên 5s
+            try {
+              const savedProgress = JSON.parse(localStorage.getItem('watch_progress') || '{}');
+              savedProgress[`${phim.id}_${tapHienTai}`] = time;
+              localStorage.setItem('watch_progress', JSON.stringify(savedProgress));
+            } catch (err) {}
+          }
+        }
+      }, 5000); 
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, isActive, phim?.id, tapHienTai]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
     const handleVisibilityChange = () => { if (document.visibilityState === 'visible' && isPlaying && video.paused) video.play().catch(() => {}); };
-    video.addEventListener('stalled', handleStalled); video.addEventListener('waiting', handleStalled); document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => { video.removeEventListener('stalled', handleStalled); video.removeEventListener('waiting', handleStalled); document.removeEventListener('visibilitychange', handleVisibilityChange); };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => { 
+      document.removeEventListener('visibilitychange', handleVisibilityChange); 
+    };
   }, [isPlaying]);
 
   useEffect(() => { if (videoRef.current) { videoRef.current.volume = volume; videoRef.current.muted = isMuted; } }, [volume, isMuted]);
@@ -320,7 +389,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
           </button>
           <div className="relative">
             {showLangMenu && (
-              <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md min-w-17.5">
+              <div className="absolute right-full mr-3 bottom-0 bg-black/80 rounded-xl p-2 flex flex-col gap-1 backdrop-blur-md min-w-[70px]">
                 {[{ l: "VI", m: "SUB", label: "SV" }, { l: "VI", m: "TM", label: "TV" }, { l: "EN", m: "SUB", label: "SE" }, { l: "EN", m: "TM", label: "TE" }].map((opt) => (<button key={opt.label} onClick={(e) => { e.stopPropagation(); resetTimer(); switchLanguage(opt.l as any, opt.m as any); }} className={`text-[11px] font-bold py-1.5 px-2 rounded transition-colors ${currentLang === opt.l && mode === opt.m ? 'bg-yellow-500 text-black' : 'text-white hover:bg-white/10'}`}>{opt.label}</button>))}
               </div>
             )}
@@ -339,7 +408,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
         </div>
         
         {/* THANH ĐIỀU KHIỂN DƯỚI ĐÁY */}
-        <div className="pointer-events-none absolute bottom-0 left-0 w-full bg-linear-to-t from-black via-black/80 to-transparent pt-24 pb-10 px-6 z-40">
+        <div className="pointer-events-none absolute bottom-0 left-0 w-full bg-[linear-gradient(to_top,rgba(0,0,0,1),rgba(0,0,0,0.8),transparent)] pt-24 pb-10 px-6 z-40">
           <div className="pointer-events-auto flex justify-center items-center gap-8 sm:gap-14 mb-8 relative w-full max-w-md mx-auto">
              
              {/* Nút Lùi Tập (Chỉ hiện khi lớn hơn tập 1) */}

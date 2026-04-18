@@ -129,7 +129,7 @@ function PhongChieu({ phim: initialPhim, onClose, danhSachToanBo }: { phim: Phim
     }
   };
 
-return (
+  return (
     <div className="absolute top-0 left-0 w-full h-dvh bg-black z-100 overflow-y-scroll snap-y snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd} onWheel={onWheel}>
       {danhSachToanBo.map((phimItem) => (
         <div key={phimItem.id} id={`snap-video-${phimItem.id}`} data-id={phimItem.id} className="snap-video-item relative w-full h-dvh snap-start snap-always shrink-0 bg-black">
@@ -208,7 +208,8 @@ export default function Home() {
     if (danhSachPhim.length > 0) {
       const historyIds = JSON.parse(localStorage.getItem('watch_history') || '[]');
       const historyMovies = historyIds.map((id: number) => danhSachPhim.find(p => p.id === id)).filter(Boolean);
-      setLichSuXem(historyMovies.slice(0, 4));
+      // Giới hạn max 8 cho lịch sử
+      setLichSuXem(historyMovies.slice(0, 8));
     }
   }, [danhSachPhim, phimDangXem]);
 
@@ -275,7 +276,7 @@ export default function Home() {
   if (!user) return (
     <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 text-center">
       <img src="/logo.jpg" className="w-40 h-40 rounded-full border-4 border-yellow-500 mb-12 shadow-2xl" alt="Logo" />
-      <h1 className="text-5xl md:text-7xl font-black text-yellow-500 uppercase italic mb-8 tracking-tighter">Xem Phim<br />Không Cần Não</h1>
+      <h1 className="text-5xl md:text-7xl font-black text-yellow-500 uppercase italic mb-8 tracking-tighter">Xem Phim<br />Không Cần Không Não</h1>
       <SignInButton mode="modal"><button className="w-full max-w-sm rounded-2xl bg-yellow-500 py-5 text-2xl font-black text-black uppercase shadow-lg hover:scale-105 transition-transform">🚀 Đăng nhập ngay</button></SignInButton>
     </div>
   );
@@ -326,13 +327,16 @@ export default function Home() {
         </div>
       </header>
 
+      {/* KHU VỰC HIỂN THỊ PHIM MỚI CUỘN NGANG */}
       <div className="max-w-4xl mx-auto px-4 pb-24">
+        
+        {/* LỊCH SỬ XEM */}
         {lichSuXem.length > 0 && !tuKhoa && (
           <div className="mb-10 animate-in fade-in duration-700">
             <h2 className="text-lg font-bold mb-4 border-l-4 border-blue-500 pl-2 uppercase italic text-blue-400 tracking-tighter">Phim bạn đã xem</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {lichSuXem.map((p) => (
-                <div key={`hist-${p.id}`} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-blue-900/30 hover:border-blue-500 transition-all shadow-lg hover:-translate-y-1">
+                <div key={`hist-${p.id}`} onClick={() => handleWatchPhim(p)} className="snap-start shrink-0 w-[40vw] md:w-[22vw] lg:w-[150px] group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-blue-900/30 hover:border-blue-500 transition-all shadow-lg hover:-translate-y-1">
                   <div className="relative aspect-2/3 overflow-hidden">
                     <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
                     <div className="absolute inset-0 bg-blue-500/10 group-hover:bg-transparent transition-colors"></div>
@@ -348,23 +352,14 @@ export default function Home() {
           </div>
         )}
 
+        {/* PHIM DỌC */}
         {phimDoc.length > 0 && (
           <div className="mb-12">
-            <div className="flex justify-between items-end mb-4">
-              <h2 className="text-lg font-bold border-l-4 border-yellow-500 pl-2 uppercase italic tracking-tighter leading-none">Phim Dọc Không Não</h2>
-              {phimDoc.length > 4 && (
-                <button 
-                  onClick={() => setViewingList("doc")} 
-                  className="text-xs font-black uppercase text-yellow-500 hover:text-white transition-colors bg-gray-900 px-3 py-1.5 rounded-lg border border-yellow-500/30 flex items-center gap-1 active:scale-95"
-                >
-                  Xem thêm <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-              )}
-            </div>
+            <h2 className="text-lg font-bold mb-4 border-l-4 border-yellow-500 pl-2 uppercase italic tracking-tighter leading-none">Phim Dọc Không Não</h2>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {phimDoc.slice(0, 4).map((p) => (
-                <div key={p.id} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500 transition-all shadow-lg hover:-translate-y-1">
+            <div className="flex gap-4 overflow-x-auto pb-6 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {phimDoc.slice(0, 8).map((p) => (
+                <div key={p.id} onClick={() => handleWatchPhim(p)} className="snap-start shrink-0 w-[40vw] md:w-[22vw] lg:w-[150px] group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-yellow-500 transition-all shadow-lg hover:-translate-y-1">
                   <div className="relative aspect-2/3 overflow-hidden">
                     <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
                     <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg">FULL</div>
@@ -376,23 +371,27 @@ export default function Home() {
                   <div className="p-3"><h3 className="text-sm font-semibold line-clamp-2 group-hover:text-yellow-400 transition-colors">{p.title}</h3></div>
                 </div>
               ))}
+              
+              {/* Thẻ Mũi Tên - Kích hoạt sổ danh sách cũ  */}
+              {phimDoc.length > 8 && (
+                <div onClick={() => setViewingList("doc")} className="snap-start shrink-0 w-[20vw] md:w-[10vw] lg:w-[80px] flex flex-col items-center justify-center cursor-pointer group hover:text-yellow-500 transition-colors">
+                  <div className="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform border border-gray-700 group-hover:border-yellow-500 shadow-xl">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-center">Xem tất cả</span>
+                </div>
+              )}
             </div>
           </div>
         )}
 
+        {/* PHIM BỘ MÀN NGANG */}
         {phimNgang.length > 0 && (
           <div>
-            <div className="flex justify-between items-end mb-4">
-              <h2 className="text-lg font-bold border-l-4 border-red-500 pl-2 uppercase italic tracking-tighter text-red-400 leading-none">Phim Bộ Màn Ngang</h2>
-              {phimNgang.length > 8 && (
-                <button onClick={() => setViewingList("ngang")} className="text-xs font-black uppercase text-red-500 hover:text-white transition-colors bg-gray-900 px-3 py-1.5 rounded-lg border border-red-500/30 flex items-center gap-1 active:scale-95">
-                  Xem thêm <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <h2 className="text-lg font-bold mb-4 border-l-4 border-red-500 pl-2 uppercase italic tracking-tighter text-red-400 leading-none">Phim Bộ Màn Ngang</h2>
+            <div className="flex gap-5 overflow-x-auto pb-6 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {phimNgang.slice(0, 8).map((p) => (
-                <div key={p.id} onClick={() => handleWatchPhim(p)} className="group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-red-500 transition-all shadow-lg hover:-translate-y-1">
+                <div key={p.id} onClick={() => handleWatchPhim(p)} className="snap-start shrink-0 w-[80vw] md:w-[45vw] lg:w-[320px] group cursor-pointer bg-gray-900 rounded-xl overflow-hidden border border-gray-800 hover:border-red-500 transition-all shadow-lg hover:-translate-y-1">
                   <div className="relative aspect-video overflow-hidden border-b border-gray-800">
                     <img src={p.thumb} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={p.title} />
                     <div className="absolute top-2 right-2 bg-yellow-500 text-black text-[10px] font-bold px-2 py-1 rounded shadow-lg">FULL</div>
@@ -407,6 +406,16 @@ export default function Home() {
                   <div className="p-4"><h3 className="text-[15px] font-bold line-clamp-2 group-hover:text-red-400 transition-colors leading-snug">{p.title}</h3></div>
                 </div>
               ))}
+              
+              {/* Thẻ Mũi Tên */}
+              {phimNgang.length > 8 && (
+                <div onClick={() => setViewingList("ngang")} className="snap-start shrink-0 w-[20vw] md:w-[15vw] lg:w-[100px] flex flex-col items-center justify-center cursor-pointer group hover:text-red-500 transition-colors">
+                  <div className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform border border-gray-700 group-hover:border-red-500 shadow-xl">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                  <span className="text-xs uppercase font-bold text-center">Xem tất cả</span>
+                </div>
+              )}
             </div>
           </div>
         )}
