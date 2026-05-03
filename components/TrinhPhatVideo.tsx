@@ -52,6 +52,7 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
   const [currentLang, setCurrentLang] = useState<"VI" | "EN">("VI");
   const [mode, setMode] = useState<"SUB" | "TM">("SUB");
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [isVideoNgang, setIsVideoNgang] = useState(false);
 
   const rawLinks = phim?.video_src || phim?.videoSrc || "";
   const danhSachTap = useMemo(() => rawLinks.split(",").map(l => l.trim()).filter(l => l.length > 0), [rawLinks]);
@@ -250,9 +251,16 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
 
-    // Khôi phục thời gian xem
+    // Khôi phục thời gian xem và kiểm tra video ngang/dọc
     const handleLoadedMetadata = () => {
       try {
+        // Kiểm tra video ngang hay dọc để gán class CSS
+        if (video.videoWidth > video.videoHeight) {
+          setIsVideoNgang(true);
+        } else {
+          setIsVideoNgang(false);
+        }
+
         const savedProgress = JSON.parse(localStorage.getItem('watch_progress') || '{}');
         const savedTime = savedProgress[`${phim.id}_${tapHienTai}`] || 0;
         // Nếu đã xem trên 5s và chưa hết video thì tự động nhảy tới đoạn đó
@@ -357,7 +365,13 @@ export default function TrinhPhatVideo({ phim, isActive, onClose }: { phim: Phim
         <div className="w-1/3 h-full" onClick={togglePlay} />
         <div className="w-1/3 h-full" onClick={togglePlay} onDoubleClick={(e) => handleDoubleTap(e, 'forward')} />
       </div>
-      <video ref={videoRef} playsInline loop={danhSachTap.length === 1} className="w-full max-h-dvh object-contain z-10" onTimeUpdate={handleTimeUpdate} />
+      <video 
+  ref={videoRef} 
+  playsInline 
+  loop={danhSachTap.length === 1} 
+  className={`w-full max-h-dvh object-contain z-10 ${isVideoNgang ? 'video-ngang' : ''}`} 
+  onTimeUpdate={handleTimeUpdate} 
+/>
       
       {/* LỚP PHỦ GIAO DIỆN CHÍNH */}
       <div className={`absolute inset-0 z-30 pointer-events-none transition-opacity duration-500 ${showUI && !showTapMenu ? 'opacity-100' : 'opacity-0'}`}>

@@ -24,13 +24,12 @@
   /* ============================================================
      🎬 PHỤ ĐỀ WEBVTT
      ============================================================ */
+     
+  /* MẶC ĐỊNH CHO MÀN DỌC (Giữ nguyên cho phim màn dọc như bạn yêu cầu) */
   video::cue {
     font-family: 'Hepta Slab', serif;
     font-weight: 700;
-    
-    /* 🔥 Kích thước cho màn hình dọc (Đã tăng lên 1 cỡ) 🔥 */
     font-size: clamp(14px, 3.5vw, 24px) !important; 
-    
     color: #ffffff;
     text-shadow: 
        0.5px  0.5px 0 #000, -0.5px -0.5px 0 #000,
@@ -43,10 +42,17 @@
     white-space: pre-wrap;
   }
 
-  /* KÍCH THƯỚC CHỮ CHO MÀN HÌNH NGANG (Giữ nguyên) */
+  /* 🔥 FIX 1: PHIM MÀN NGANG KHI CẦM DỌC (Chữ nhỏ lại cho vừa) 🔥 */
+  /* Lưu ý: Bạn cần thêm class className="video-ngang" vào thẻ <video> của các phim màn ngang */
+  video.video-ngang::cue {
+    font-size: clamp(10px, 2vw, 16px) !important; 
+  }
+
+  /* 🔥 FIX 2: KÍCH THƯỚC CHỮ KHI XOAY MÀN HÌNH NGANG (Tăng to hơn một chút) 🔥 */
   @media (orientation: landscape) {
-    video::cue {
-      font-size: clamp(10px, 2.5vh, 16px) !important; 
+    video::cue, video.video-ngang::cue {
+      /* Cũ: clamp(10px, 2.5vh, 16px). Mới: Tăng min và vh lên để dễ đọc hơn */
+      font-size: clamp(14px, 4.5vh, 22px) !important; 
     }
   }
 
