@@ -142,6 +142,7 @@ function PhongChieu({ phim: initialPhim, onClose, danhSachToanBo }: { phim: Phim
 
 // 4. TRANG CHỦ
 export default function Home() {
+  const [showShutdownNotice, setShowShutdownNotice] = useState(true);
   const [danhSachPhim, setDanhSachPhim] = useState<Phim[]>([]);
   const [lichSuXem, setLichSuXem] = useState<Phim[]>([]);
   const [phimDangXem, setPhimDangXem] = useState<Phim | null>(null);
@@ -284,7 +285,38 @@ export default function Home() {
   if (phimDangXem) return <PhongChieu phim={phimDangXem} danhSachToanBo={phimHienThi} onClose={() => setPhimDangXem(null)} />;
 
   return (
-    <main className="h-screen overflow-y-auto bg-[#0b0f19] text-white relative [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <main className="h-screen overflow-hidden bg-[#0b0f19] text-white relative">
+      
+      {/* LỚP PHỦ CHẶN TOÀN BỘ GIAO DIỆN */}
+      <div className="fixed inset-0 bg-[#0b0f19] z-[9999] flex flex-col items-center justify-center p-6 text-gray-200 font-sans leading-relaxed">
+        <div className="max-w-xl w-full bg-gray-900/50 rounded-2xl border border-red-900/30 p-8 md:p-12 text-center space-y-6 shadow-2xl">
+          <h1 className="text-2xl md:text-3xl font-black text-red-500 uppercase tracking-tighter italic">
+            Thông báo ngừng hoạt động
+          </h1>
+
+          <div className="space-y-4 text-sm md:text-base text-gray-300">
+            <p className="text-lg font-bold text-white">Chào mọi người,</p>
+            
+            <p>
+              Sạp xin chính thức thông báo: <strong className="text-white">Website sẽ ngừng hoạt động.</strong>
+            </p>
+            
+            <p>
+              Quyết định này nhằm mục đích tuân thủ nghiêm túc các quy định của pháp luật Việt Nam hiện hành về việc phổ biến nội dung số và bản quyền.
+            </p>
+            
+            <p>
+              Cảm ơn cả nhà đã luôn đồng hành, theo dõi và ủng hộ các bản dịch của Sạp trong suốt thời gian qua. Để đảm bảo quyền riêng tư, toàn bộ thông tin đăng nhập và dữ liệu người dùng trên hệ thống website sẽ được xóa bỏ hoàn toàn.
+            </p>
+          </div>
+
+          <p className="text-lg font-black text-yellow-500 mt-8 pt-6 border-t border-gray-800 italic uppercase tracking-widest">
+            Tạm biệt!
+          </p>
+        </div>
+      </div>
+
+      {/* PHẦN CODE CŨ BÊN DƯỚI (SẼ BỊ CHE KHUẤT HOÀN TOÀN) */}
       <header className="sticky top-0 z-40 bg-[#0b0f19]/80 backdrop-blur-xl pt-4 pb-4 px-4 border-b border-gray-800 shadow-xl mb-6 rounded-b-xl">
         <div className="max-w-4xl mx-auto flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
@@ -292,7 +324,6 @@ export default function Home() {
             <h1 className="text-xl md:text-2xl font-black text-yellow-500 uppercase italic leading-tight tracking-tighter">Xem Phim <br/> Không Cần Não</h1>
           </div>
           
-          {/* 🛡️ Huy hiệu VIP */}
           <div className="flex items-center gap-3 bg-gray-900/50 p-1.5 pr-3 rounded-full border border-gray-800">
             <UserButton appearance={{ elements: { userButtonAvatarBox: "w-10 h-10 border-2 border-yellow-500" } }} />
             {isVip ? (
@@ -301,7 +332,7 @@ export default function Home() {
                 <span className="text-yellow-500 font-black text-xs uppercase tracking-wider">VIP</span>
               </div>
             ) : (
-              <button onClick={() => setShowVipModal(true)} className="bg-linear-to-r from-yellow-600 to-yellow-500 text-black text-[10px] font-black px-3 py-1.5 rounded-full uppercase hover:scale-105 transition-transform shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+              <button className="bg-linear-to-r from-yellow-600 to-yellow-500 text-black text-[10px] font-black px-3 py-1.5 rounded-full uppercase opacity-50 cursor-not-allowed">
                 Nâng cấp VIP
               </button>
             )}
