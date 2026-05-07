@@ -298,7 +298,7 @@ export default function Home() {
             <p className="text-lg font-bold text-white">Chào mọi người,</p>
             
             <p>
-              Sạp xin chính thức thông báo: <strong className="text-white">Website sẽ ngừng hoạt động.</strong>
+              Sạp xin chính thức thông báo: <strong className="text-white">Website sẽ ngừng hoạt động từ ngày 06/05/2026.</strong>
             </p>
             
             <p>
